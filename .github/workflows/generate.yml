@@ -36,7 +36,7 @@ jobs:
         run: npm install -g @anthropic-ai/claude-code
 
       - name: Install Python deps
-        run: pip install -r pipeline/requirements.txt
+        run: pip install -r requirements.txt
 
       - name: Restore Higgsfield credentials
         run: |
@@ -55,14 +55,13 @@ jobs:
         run: |
           claude -p "Run today's generation following CLAUDE.md instructions exactly. Stay within every guardrail and cap listed there." \
             --dangerously-skip-permissions
-        working-directory: pipeline
 
       - name: Commit characters.json if Claude updated it (e.g. new Soul trained)
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          if ! git diff --quiet -- pipeline/config/characters.json; then
-            git add pipeline/config/characters.json
+          if ! git diff --quiet -- config/characters.json; then
+            git add config/characters.json
             git commit -m "Update characters.json from generation run (run ${{ github.run_number }})"
             git push
           else
@@ -74,7 +73,7 @@ jobs:
         run: |
           DATE=$(date -u +%F)
           echo "date=$DATE" >> "$GITHUB_OUTPUT"
-          IDEA=$(python -c "import json;print(json.load(open('pipeline/storage/pending/$DATE/status.json'))['idea'])")
+          IDEA=$(python -c "import json;print(json.load(open('storage/pending/$DATE/status.json'))['idea'])")
           echo "idea=$IDEA" >> "$GITHUB_OUTPUT"
 
       - name: Publish video as a GitHub Release asset
@@ -83,14 +82,14 @@ jobs:
         with:
           tag_name: run-${{ steps.status.outputs.date }}-${{ github.run_number }}
           name: "Cartoon short - ${{ steps.status.outputs.date }}"
-          files: pipeline/storage/pending/${{ steps.status.outputs.date }}/final.mp4
+          files: storage/pending/${{ steps.status.outputs.date }}/final.mp4
           body: "Automated generation run. Awaiting approval via linked issue."
 
       - name: Open approval issue
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          python pipeline/scripts/open_approval_issue.py \
+          python scripts/open_approval_issue.py \
             --date "${{ steps.status.outputs.date }}" \
             --idea "${{ steps.status.outputs.idea }}" \
             --video-url "https://github.com/${{ github.repository }}/releases/download/run-${{ steps.status.outputs.date }}-${{ github.run_number }}/final.mp4"

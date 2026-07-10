@@ -27,7 +27,7 @@ jobs:
       - name: Extract date and video URL from issue
         id: parse
         run: |
-          python pipeline/scripts/parse_approval_issue.py \
+          python scripts/parse_approval_issue.py \
             --title "${{ github.event.issue.title }}" \
             --body "${{ toJson(github.event.issue.body) }}" \
             >> "$GITHUB_OUTPUT"
@@ -39,4 +39,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
-        run: python pipeline/scripts/publish.py --date "${{ steps.parse.outputs.date }}" --video-path final.mp4
+        run: python scripts/publish.py --date "${{ steps.parse.outputs.date }}" --video-path final.mp4
