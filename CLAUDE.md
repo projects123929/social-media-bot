@@ -28,6 +28,16 @@ yet either, so:
 ## Steps
 
 1. Read `config/theme.json` and `rules.md`.
+   - If `theme.json` still contains its placeholder text (the literal word
+     `PLACEHOLDER` in `niche`/`content_pillars`) **and** `GENERATION_MODE`
+     is `test`: this is fine — proceed anyway using a generic, safe,
+     comedic idea for pipeline-mechanics testing only. Don't treat it as a
+     real content/brand decision, and say so explicitly in your summary at
+     the end of the run.
+   - If `theme.json` is still placeholder text **and** `GENERATION_MODE` is
+     `full`: stop and report that the real niche needs to be decided
+     before a "full" (real, publishable) run — don't guess at the brand's
+     actual theme for a real post.
 2. For each character in this run's story, generate exactly **one**
    reference image (a single shot, not a multi-angle board) for
    consistency within this single video's scenes. Never regenerate a
