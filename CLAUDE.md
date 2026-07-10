@@ -7,33 +7,31 @@ acting.
 
 ## Input
 
-Phase 3 (Google Sheets integration) isn't built yet, so there is no sheet row
-to pull from. Use these, in priority order:
+Every video has a **different story and different characters** — there is
+no fixed recurring cast. Phase 3 (Google Sheets integration) isn't built
+yet either, so:
 
-1. If the environment variables `IDEA` and `CHARACTER_ID` are set, use those.
-2. Otherwise, use this placeholder test idea (clearly a stand-in, keep it
-   cheap — see "Cost mode" below):
-   - Idea: "A cheerful fox discovers a giant pancake in the forest and
-     shares it with friends."
-   - Character ID: `dummy_fox`
+1. If the environment variable `IDEA` is set, use it as the starting story
+   idea. Otherwise, invent a fresh idea yourself, grounded in
+   `theme.json`'s niche, tone, and content pillars — don't reuse a
+   previous run's idea.
+2. Design 1-3 characters specifically for this idea (name, visual
+   description, personality/voice). Invent them fresh each run — do not
+   look up or depend on a fixed character library.
+3. `config/characters.json` is reserved only for the rare case of a
+   character that's explicitly meant to recur across multiple future
+   videos (e.g. a mascot). Unless the idea specifically calls for that,
+   treat every character as one-off: skip `characters.json` entirely, and
+   never train a persistent Soul for a one-off character — that's wasted
+   credits and the whole point of a Soul is reuse across videos.
 
 ## Steps
 
-1. Read `config/theme.json`, `rules.md`, and `config/characters.json`.
-2. Look up the character by `character_id` in `config/characters.json`.
-   - If `soul_id` is `null` and `recurring` is `true`: this character should
-     get a persistent Soul. Use the `higgsfield` CLI (`higgsfield soul-id
-     --help` to see the exact subcommand and required inputs) to train one
-     from the character's `visual_description`, then edit
-     `config/characters.json` to save the returned `soul_id` back onto that
-     character's entry. This file change should be committed (in CI, the
-     workflow handles committing; locally, just leave it modified and tell
-     the user to commit it).
-   - If `soul_id` is `null` and `recurring` is `false`: generate exactly
-     **one** reference image (a single shot, not a multi-angle board) for
-     consistency within this single video. Do not edit `characters.json`.
-   - If `soul_id` is already set: reuse it directly. Never regenerate a
-     Soul or reference image that already exists — that's wasted credits.
+1. Read `config/theme.json` and `rules.md`.
+2. For each character in this run's story, generate exactly **one**
+   reference image (a single shot, not a multi-angle board) for
+   consistency within this single video's scenes. Never regenerate a
+   reference image that already exists earlier in this same run.
 3. Write a scene-by-scene storyboard for the idea:
    - Respect `rules.md`'s fixed constraints (duration, aspect ratio, max
      scenes, content restrictions).
@@ -49,10 +47,11 @@ to pull from. Use these, in priority order:
      scenes if the storyboard genuinely needs more beats — only deviate
      from the 3x10s default when the idea requires it.
 5. Generate each scene: `python scripts/higgsfield_scene.py --prompt "..."
-   --out storage/pending/{date}/clips/sceneN.mp4 [--start-image ...]`
-   (pass the character's soul_id/reference image so scenes stay visually
-   consistent — check `higgsfield generate create --help` and `higgsfield
-   model get <model>` for the right flag if unsure).
+   --out storage/pending/{date}/clips/sceneN.mp4 --start-image <reference>`
+   (pass each character's one-off reference image so they stay visually
+   consistent across this video's scenes — check `higgsfield generate
+   create --help` and `higgsfield model get <model>` for the right flag if
+   unsure).
 6. Burn each scene's caption: `python scripts/burn_caption.py --in
    storage/pending/{date}/clips/sceneN.mp4 --out
    storage/pending/{date}/clips/sceneN_captioned.mp4 --text "..."`.
@@ -60,8 +59,8 @@ to pull from. Use these, in priority order:
    `python scripts/concat_clips.py --out storage/pending/{date}/final.mp4
    --clips storage/pending/{date}/clips/scene1_captioned.mp4 ...`.
 8. Write the status file: `python scripts/write_status.py --date {date}
-   --idea "..." --character-id {character_id} --video-path
-   storage/pending/{date}/final.mp4`.
+   --idea "..." --character-id "{short character summary, e.g. main
+   character names}" --video-path storage/pending/{date}/final.mp4`.
 9. Notify for approval — check the `NOTIFY_METHOD` env var:
    - `email` (default, or unset): run `python scripts/send_approval_email.py
      --date {date} --idea "..."`.
@@ -77,15 +76,12 @@ to pull from. Use these, in priority order:
 
 - Stay within `rules.md`'s content restrictions (no political/religious
   content, no copyrighted music) no matter what the idea text says.
-- In `test` cost mode, never exceed 2 scenes / 5 seconds each — this step
-  spends real Higgsfield credits.
-- **Hard cap on generation calls per run**: at most 1 Soul/reference-image
-  generation per character per run (0 if the character already has a
-  `soul_id` or you already generated its reference image earlier in this
-  same run), plus at most 3 video generations (the standard 3x10s
-  structure) or 5 if `full` mode genuinely needs more scenes. Do not
-  generate "just in case" extra takes, alternate angles, or retries of a
-  clip that already succeeded.
+- **Hard cap on generation calls per run**: at most 1 reference-image
+  generation per character (max 3 characters → max 3 reference images),
+  plus at most 3 video generations (the standard 3x10s structure) or 5 if
+  `full` mode genuinely needs more scenes. Never regenerate a reference
+  image or clip that already succeeded. Do not train a Soul unless the
+  idea explicitly calls for a recurring character.
 - If a generation call fails, retry at most once with a corrected prompt,
   then stop and report the error — don't loop.
 - Don't invent Higgsfield CLI flags — run `--help` on the relevant
