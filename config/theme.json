@@ -1,0 +1,16 @@
+{
+  "niche": "PLACEHOLDER - general comedic cartoon shorts, update once the real niche is decided",
+  "tone": "funny / comedic",
+  "content_pillars": [
+    "PLACEHOLDER - e.g. everyday-life mishaps",
+    "PLACEHOLDER - e.g. animal characters in human situations",
+    "PLACEHOLDER - e.g. quick punchline skits"
+  ],
+  "things_to_avoid": [
+    "political content",
+    "religious content",
+    "copyrighted music",
+    "anything not matching the content pillars above"
+  ],
+  "notes": "This file is a placeholder. Replace niche, tone, and content_pillars with the real theme once decided before running real generation jobs."
+}

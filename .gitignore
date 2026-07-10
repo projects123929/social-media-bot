@@ -1,0 +1,5 @@
+config/.env
+storage/
+*.mp4
+__pycache__/
+*.pyc
