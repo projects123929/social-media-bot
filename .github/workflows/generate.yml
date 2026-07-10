@@ -1,0 +1,96 @@
+name: Generate cartoon short and request approval
+
+on:
+  schedule:
+    - cron: "0 6 * * *"   # 06:00 UTC daily
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install ffmpeg and fonts
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-dejavu-core
+
+      - name: Install Higgsfield CLI
+        run: npm install -g @higgsfield/cli
+
+      - name: Install Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Install Python deps
+        run: pip install -r pipeline/requirements.txt
+
+      - name: Restore Higgsfield credentials
+        run: |
+          mkdir -p ~/.config/higgsfield
+          echo '${{ secrets.HIGGSFIELD_CREDENTIALS }}' > ~/.config/higgsfield/credentials.json
+          echo '{"workspace_id": "aad56f9d-59a6-48c6-bbb0-1dd794d302ff"}' > ~/.config/higgsfield/config.json
+
+      - name: Verify Higgsfield auth
+        run: higgsfield account status
+
+      - name: Run generation (Claude Code)
+        env:
+          NOTIFY_METHOD: github_issue
+          GENERATION_MODE: test
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          claude -p "Run today's generation following CLAUDE.md instructions exactly. Stay within every guardrail and cap listed there." \
+            --dangerously-skip-permissions
+        working-directory: pipeline
+
+      - name: Commit characters.json if Claude updated it (e.g. new Soul trained)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if ! git diff --quiet -- pipeline/config/characters.json; then
+            git add pipeline/config/characters.json
+            git commit -m "Update characters.json from generation run (run ${{ github.run_number }})"
+            git push
+          else
+            echo "No changes to characters.json"
+          fi
+
+      - name: Read run status
+        id: status
+        run: |
+          DATE=$(date -u +%F)
+          echo "date=$DATE" >> "$GITHUB_OUTPUT"
+          IDEA=$(python -c "import json;print(json.load(open('pipeline/storage/pending/$DATE/status.json'))['idea'])")
+          echo "idea=$IDEA" >> "$GITHUB_OUTPUT"
+
+      - name: Publish video as a GitHub Release asset
+        id: release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: run-${{ steps.status.outputs.date }}-${{ github.run_number }}
+          name: "Cartoon short - ${{ steps.status.outputs.date }}"
+          files: pipeline/storage/pending/${{ steps.status.outputs.date }}/final.mp4
+          body: "Automated generation run. Awaiting approval via linked issue."
+
+      - name: Open approval issue
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python pipeline/scripts/open_approval_issue.py \
+            --date "${{ steps.status.outputs.date }}" \
+            --idea "${{ steps.status.outputs.idea }}" \
+            --video-url "https://github.com/${{ github.repository }}/releases/download/run-${{ steps.status.outputs.date }}-${{ github.run_number }}/final.mp4"

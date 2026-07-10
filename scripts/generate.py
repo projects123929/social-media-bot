@@ -78,7 +78,7 @@ def run_higgsfield_scene(prompt, out_path):
             "--resolution", RESOLUTION,
             "--wait",
         ],
-        capture_output=True, text=True, shell=True,
+        capture_output=True, text=True, shell=(os.name == "nt"),
     )
     if result.returncode != 0:
         raise RuntimeError(f"higgsfield CLI failed:\n{result.stdout}\n{result.stderr}")
@@ -156,12 +156,17 @@ def main():
     with open(os.path.join(run_dir, "status.json"), "w", encoding="utf-8") as f:
         json.dump(status, f, indent=2)
 
-    print("[generate] Sending approval email...")
-    subprocess.run(
-        [sys.executable, os.path.join(PIPELINE_ROOT, "scripts", "send_approval_email.py"),
-         "--date", today, "--idea", TEST_IDEA],
-        check=True,
-    )
+    notify_method = os.environ.get("NOTIFY_METHOD", "email")
+    if notify_method == "email":
+        print("[generate] Sending approval email...")
+        subprocess.run(
+            [sys.executable, os.path.join(PIPELINE_ROOT, "scripts", "send_approval_email.py"),
+             "--date", today, "--idea", TEST_IDEA],
+            check=True,
+        )
+    else:
+        print(f"[generate] NOTIFY_METHOD={notify_method}, skipping in-script "
+              f"notification (handled by the calling workflow).")
     print("[generate] Done.")
 
 

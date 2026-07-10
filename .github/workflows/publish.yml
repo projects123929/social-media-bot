@@ -1,0 +1,42 @@
+name: Publish approved video
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  publish:
+    if: github.event.label.name == 'approved'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python deps
+        run: pip install requests
+
+      - name: Extract date and video URL from issue
+        id: parse
+        run: |
+          python pipeline/scripts/parse_approval_issue.py \
+            --title "${{ github.event.issue.title }}" \
+            --body "${{ toJson(github.event.issue.body) }}" \
+            >> "$GITHUB_OUTPUT"
+
+      - name: Download approved video
+        run: curl -sL -o final.mp4 "${{ steps.parse.outputs.video_url }}"
+
+      - name: Run publish step
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: python pipeline/scripts/publish.py --date "${{ steps.parse.outputs.date }}" --video-path final.mp4
