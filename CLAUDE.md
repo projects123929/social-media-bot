@@ -38,16 +38,21 @@ yet either, so:
      `full`: stop and report that the real niche needs to be decided
      before a "full" (real, publishable) run — don't guess at the brand's
      actual theme for a real post.
-2. For each character in this run's story, generate exactly **one**
-   reference image (a single shot, not a multi-angle board) for
-   consistency within this single video's scenes. Never regenerate a
-   reference image that already exists earlier in this same run.
-3. Write a scene-by-scene storyboard for the idea:
-   - Respect `rules.md`'s fixed constraints (duration, aspect ratio, max
-     scenes, content restrictions).
-   - Match `theme.json`'s tone and content pillars.
-   - Each scene needs a short visual prompt (for Higgsfield) and a short
-     on-screen caption line.
+2. Generate exactly **one** reference image for this run — a single shot
+   showing all of this run's characters together in the story's opening
+   location (like a mini character board, not a multi-angle board). This
+   is the only reference image generation call for the whole run; never
+   generate a separate image per character, and never regenerate it.
+3. Write a short script before writing visual prompts — this matters for
+   quality, don't skip straight to prompts:
+   - **Title**, one-line **concept**, and an **emotion arc** (e.g.
+     Curiosity → Tension → Resolution) for the whole video.
+   - A per-scene beat: what happens, what changes emotionally, and (if
+     there's dialogue) the line(s) spoken and by whom.
+   - Then turn each beat into a scene visual prompt and a short on-screen
+     caption line. Respect `rules.md`'s fixed constraints (duration,
+     aspect ratio, max scenes, content restrictions) and `theme.json`'s
+     tone/content pillars throughout.
 4. **Cost mode** — check the `GENERATION_MODE` env var:
    - `test` (default, or unset): **3 scenes, 10 seconds each = 30 seconds
      total**, using `kling3_0_turbo` at 720p, 9:16. This is the standard
@@ -56,12 +61,25 @@ yet either, so:
    - `full`: same 3-scenes-of-10s structure, but 1080p and/or up to 5
      scenes if the storyboard genuinely needs more beats — only deviate
      from the 3x10s default when the idea requires it.
-5. Generate each scene: `python scripts/higgsfield_scene.py --prompt "..."
-   --out storage/pending/{date}/clips/sceneN.mp4 --start-image <reference>`
-   (pass each character's one-off reference image so they stay visually
-   consistent across this video's scenes — check `higgsfield generate
-   create --help` and `higgsfield model get <model>` for the right flag if
-   unsure).
+5. Generate each scene **in order**, chaining continuity between them:
+   - Scene 1: `python scripts/higgsfield_scene.py --prompt "..." --out
+     storage/pending/{date}/clips/scene1.mp4 --start-image <the run's
+     reference image from step 2>`.
+   - After scene 1 finishes, extract its last frame: `python
+     scripts/extract_last_frame.py --in
+     storage/pending/{date}/clips/scene1.mp4 --out
+     storage/pending/{date}/clips/scene1_last_frame.jpg`.
+   - Scene 2: same `higgsfield_scene.py` call, but `--start-image` is
+     scene 1's extracted last frame, not the original reference image.
+   - Repeat: extract scene 2's last frame, use it as scene 3's
+     `--start-image`, and so on for any further scenes.
+   - This chaining (each clip starting from the previous clip's actual
+     last frame) is what keeps character appearance, location, and
+     lighting continuous across cuts — don't skip it and don't have every
+     scene start from the same original reference image independently.
+   - Check `higgsfield generate create --help` / `higgsfield model get
+     <model>` if you're unsure of the exact flag name for supplying a
+     start image.
 6. Burn each scene's caption: `python scripts/burn_caption.py --in
    storage/pending/{date}/clips/sceneN.mp4 --out
    storage/pending/{date}/clips/sceneN_captioned.mp4 --text "..."`.
@@ -86,12 +104,14 @@ yet either, so:
 
 - Stay within `rules.md`'s content restrictions (no political/religious
   content, no copyrighted music) no matter what the idea text says.
-- **Hard cap on generation calls per run**: at most 1 reference-image
-  generation per character (max 3 characters → max 3 reference images),
+- **Hard cap on generation calls per run**: exactly 1 reference-image
+  generation for the whole run (all characters together, not one each),
   plus at most 3 video generations (the standard 3x10s structure) or 5 if
-  `full` mode genuinely needs more scenes. Never regenerate a reference
-  image or clip that already succeeded. Do not train a Soul unless the
-  idea explicitly calls for a recurring character.
+  `full` mode genuinely needs more scenes. Extracting last frames with
+  `extract_last_frame.py` is free (local ffmpeg, no Higgsfield credits) —
+  do that as many times as there are scene transitions. Never regenerate a
+  reference image or clip that already succeeded. Do not train a Soul
+  unless the idea explicitly calls for a recurring character.
 - If a generation call fails, retry at most once with a corrected prompt,
   then stop and report the error — don't loop.
 - Don't invent Higgsfield CLI flags — run `--help` on the relevant
