@@ -13,16 +13,13 @@ Sheets dashboard row, per `docs/AUTOMATION_ARCHITECTURE.md`):
 - Use `storage/pending/{RUN_FOLDER}/` everywhere these instructions say
   `storage/pending/{date}/` — this keeps same-day multi-row runs from
   overwriting each other's files.
-- Update the row's Status/Progress/Approval Status/Upload Status columns
-  directly using whatever Google Sheets tool is available in this session
-  (an MCP connector's Sheets actions) — advance Progress after each
-  milestone (reference image, each of the 3 scenes, captions/concatenation)
-  and set Status="Completed" once the final video exists.
-- Send the approval email yourself using whatever Gmail tool is available
-  in this session, instead of step 9's `send_approval_email.py`/GitHub-issue
-  notification — see `docs/AUTOMATION_ARCHITECTURE.md` for the exact
-  email format and reply-matching convention (`[Row {SHEET_ROW}]` in the
-  subject).
+- Report progress back to the sheet as you go:
+  `python scripts/sheets_sync.py progress --row {SHEET_ROW} --percent 20`
+  after the reference image, `40`/`60`/`80` after each of the 3 scenes,
+  `90` during captions/concatenation. This is free (no Higgsfield credits).
+- Skip step 9 (email/GitHub-issue notification) entirely — the calling
+  workflow marks the row Completed and sends the approval email itself via
+  `scripts/sheets_sync.py complete` after this task finishes successfully.
 
 If these env vars are unset, ignore this section entirely — proceed with
 the standard `{date}`-based flow below exactly as documented.

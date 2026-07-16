@@ -2,12 +2,11 @@ name: Generate cartoon short and request approval
 
 on:
   schedule:
-    - cron: "0 6 * * *"   # 06:00 UTC daily
+    - cron: "*/20 * * * *"   # every 20 minutes — polls the Sheets dashboard for a pending row
   workflow_dispatch: {}
 
 permissions:
   contents: write
-  issues: write
 
 jobs:
   generate:
@@ -47,49 +46,72 @@ jobs:
       - name: Verify Higgsfield auth
         run: higgsfield account status
 
-      - name: Run generation (Claude Code)
+      - name: Claim a pending row from the Sheets dashboard
+        id: claim
         env:
-          NOTIFY_METHOD: github_issue
+          GAS_WEBAPP_URL: ${{ secrets.GAS_WEBAPP_URL }}
+          GAS_SHARED_SECRET: ${{ secrets.GAS_SHARED_SECRET }}
+        run: cd scripts && python sheets_sync.py claim
+
+      - name: Run generation (Claude Code)
+        if: steps.claim.outputs.has_row == 'true'
+        env:
+          RUN_FOLDER: ${{ steps.claim.outputs.run_folder }}
+          SHEET_ROW: ${{ steps.claim.outputs.row_number }}
+          IDEA: ${{ steps.claim.outputs.idea }}
           GENERATION_MODE: test
+          GAS_WEBAPP_URL: ${{ secrets.GAS_WEBAPP_URL }}
+          GAS_SHARED_SECRET: ${{ secrets.GAS_SHARED_SECRET }}
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
         run: |
-          claude -p "Run today's generation following CLAUDE.md instructions exactly. Stay within every guardrail and cap listed there." \
+          claude -p "Run this generation following CLAUDE.md instructions exactly, including its 'Sheets-driven mode' section since RUN_FOLDER and SHEET_ROW are set. Use scripts/sheets_sync.py progress calls to report progress. Stay within every guardrail and cap listed there." \
             --dangerously-skip-permissions
 
       - name: Commit characters.json if Claude updated it (e.g. new Soul trained)
+        if: steps.claim.outputs.has_row == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           if ! git diff --quiet -- config/characters.json; then
             git add config/characters.json
-            git commit -m "Update characters.json from generation run (run ${{ github.run_number }})"
+            git commit -m "Update characters.json from sheet-driven run (row ${{ steps.claim.outputs.row_number }})"
             git push
           else
             echo "No changes to characters.json"
           fi
 
-      - name: Read run status
-        id: status
-        run: |
-          DATE=$(date -u +%F)
-          echo "date=$DATE" >> "$GITHUB_OUTPUT"
-          IDEA=$(python -c "import json;print(json.load(open('storage/pending/$DATE/status.json'))['idea'])")
-          echo "idea=$IDEA" >> "$GITHUB_OUTPUT"
-
       - name: Publish video as a GitHub Release asset
+        if: steps.claim.outputs.has_row == 'true'
         id: release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: run-${{ steps.status.outputs.date }}-${{ github.run_number }}
-          name: "Cartoon short - ${{ steps.status.outputs.date }}"
-          files: storage/pending/${{ steps.status.outputs.date }}/final.mp4
-          body: "Automated generation run. Awaiting approval via linked issue."
+          tag_name: sheet-run-${{ steps.claim.outputs.run_folder }}-${{ github.run_number }}
+          name: "Cartoon short - Row ${{ steps.claim.outputs.row_number }} (${{ steps.claim.outputs.today }})"
+          files: storage/pending/${{ steps.claim.outputs.run_folder }}/final.mp4
+          body: "Automated Sheets-driven generation run. Awaiting approval via email."
 
-      - name: Open approval issue
+      - name: Mark row Completed and send approval email
+        if: steps.claim.outputs.has_row == 'true' && success()
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GAS_WEBAPP_URL: ${{ secrets.GAS_WEBAPP_URL }}
+          GAS_SHARED_SECRET: ${{ secrets.GAS_SHARED_SECRET }}
         run: |
-          python scripts/open_approval_issue.py \
-            --date "${{ steps.status.outputs.date }}" \
-            --idea "${{ steps.status.outputs.idea }}" \
-            --video-url "https://github.com/${{ github.repository }}/releases/download/run-${{ steps.status.outputs.date }}-${{ github.run_number }}/final.mp4"
+          cd scripts
+          python sheets_sync.py complete \
+            --row "${{ steps.claim.outputs.row_number }}" \
+            --title "${{ steps.claim.outputs.idea }}" \
+            --video-url "https://github.com/${{ github.repository }}/releases/download/sheet-run-${{ steps.claim.outputs.run_folder }}-${{ github.run_number }}/final.mp4"
+
+      - name: Mark row failed if generation errored
+        if: steps.claim.outputs.has_row == 'true' && failure()
+        env:
+          GAS_WEBAPP_URL: ${{ secrets.GAS_WEBAPP_URL }}
+          GAS_SHARED_SECRET: ${{ secrets.GAS_SHARED_SECRET }}
+        run: cd scripts && python sheets_sync.py fail --row "${{ steps.claim.outputs.row_number }}"
+
+      - name: Check Gmail for Approve/Reject replies on completed rows
+        if: always()
+        env:
+          GAS_WEBAPP_URL: ${{ secrets.GAS_WEBAPP_URL }}
+          GAS_SHARED_SECRET: ${{ secrets.GAS_SHARED_SECRET }}
+        run: cd scripts && python sheets_sync.py check-approvals
