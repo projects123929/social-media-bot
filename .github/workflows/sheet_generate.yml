@@ -1,0 +1,109 @@
+name: Sheets-driven video generation
+
+on:
+  schedule:
+    - cron: "*/20 * * * *"   # every 20 minutes
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install ffmpeg and fonts
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-dejavu-core
+
+      - name: Install Higgsfield CLI
+        run: npm install -g @higgsfield/cli
+
+      - name: Install Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Install Python deps
+        run: pip install -r requirements.txt
+
+      - name: Restore Higgsfield credentials
+        run: |
+          mkdir -p ~/.config/higgsfield
+          echo '${{ secrets.HIGGSFIELD_CREDENTIALS }}' > ~/.config/higgsfield/credentials.json
+          echo '{"workspace_id": "aad56f9d-59a6-48c6-bbb0-1dd794d302ff"}' > ~/.config/higgsfield/config.json
+
+      - name: Verify Higgsfield auth
+        run: higgsfield account status
+
+      - name: Claim a pending row from the dashboard
+        id: claim
+        env:
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+        run: cd scripts && python sheets_sync.py claim
+
+      - name: Run generation (Claude Code)
+        if: steps.claim.outputs.has_row == 'true'
+        env:
+          RUN_FOLDER: ${{ steps.claim.outputs.run_folder }}
+          SHEET_ROW: ${{ steps.claim.outputs.row_number }}
+          IDEA: ${{ steps.claim.outputs.idea }}
+          GENERATION_MODE: test
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          claude -p "Run this generation following CLAUDE.md instructions exactly, including its 'Sheets-driven mode' section since RUN_FOLDER and SHEET_ROW are set. Stay within every guardrail and cap listed there." \
+            --dangerously-skip-permissions
+
+      - name: Commit characters.json if Claude updated it
+        if: steps.claim.outputs.has_row == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if ! git diff --quiet -- config/characters.json; then
+            git add config/characters.json
+            git commit -m "Update characters.json from sheet-driven run (row ${{ steps.claim.outputs.row_number }})"
+            git push
+          else
+            echo "No changes to characters.json"
+          fi
+
+      - name: Publish video as a GitHub Release asset
+        if: steps.claim.outputs.has_row == 'true'
+        id: release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: sheet-run-${{ steps.claim.outputs.run_folder }}-${{ github.run_number }}
+          name: "Cartoon short - Row ${{ steps.claim.outputs.row_number }} (${{ steps.claim.outputs.today }})"
+          files: storage/pending/${{ steps.claim.outputs.run_folder }}/final.mp4
+          body: "Automated Sheets-driven generation run. Awaiting approval via email."
+
+      - name: Mark row Completed and send approval email
+        if: steps.claim.outputs.has_row == 'true' && success()
+        env:
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          GMAIL_CLIENT_ID: ${{ secrets.GMAIL_CLIENT_ID }}
+          GMAIL_CLIENT_SECRET: ${{ secrets.GMAIL_CLIENT_SECRET }}
+          GMAIL_REFRESH_TOKEN: ${{ secrets.GMAIL_REFRESH_TOKEN }}
+        run: |
+          cd scripts
+          python sheets_sync.py complete \
+            --row "${{ steps.claim.outputs.row_number }}" \
+            --title "${{ steps.claim.outputs.idea }}" \
+            --video-url "https://github.com/${{ github.repository }}/releases/download/sheet-run-${{ steps.claim.outputs.run_folder }}-${{ github.run_number }}/final.mp4"
+
+      - name: Mark row failed if generation errored
+        if: steps.claim.outputs.has_row == 'true' && failure()
+        env:
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+        run: cd scripts && python sheets_sync.py fail --row "${{ steps.claim.outputs.row_number }}"

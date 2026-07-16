@@ -5,6 +5,25 @@ pipeline. This file is your instructions when invoked for that task (locally
 via `claude`, or headlessly in CI via `claude -p`). Read it fully before
 acting.
 
+## Sheets-driven mode (optional)
+
+If the environment variables `RUN_FOLDER` and `SHEET_ROW` are both set
+(set by `.github/workflows/sheet_generate.yml` when a run is triggered by a
+Google Sheets dashboard row, per `docs/AUTOMATION_ARCHITECTURE.md`):
+- Use `storage/pending/{RUN_FOLDER}/` everywhere these instructions say
+  `storage/pending/{date}/` — this keeps same-day multi-row runs from
+  overwriting each other's files.
+- After each major milestone, report progress back to the sheet:
+  `python scripts/sheets_sync.py progress --row {SHEET_ROW} --percent 20`
+  after the reference image, `40`/`60`/`80` after each of the 3 scenes,
+  `90` during captions/concatenation. This is free (no Higgsfield credits).
+- Skip step 9 (email/GitHub-issue notification) entirely — the calling
+  workflow sends the Sheets-flow approval email itself via
+  `scripts/sheets_sync.py complete` after this task finishes.
+
+If these env vars are unset, ignore this section entirely — proceed with
+the standard `{date}`-based flow below exactly as documented.
+
 ## Input
 
 Every video has a **different story and different characters** — there is

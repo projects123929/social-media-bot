@@ -63,3 +63,36 @@ automation (own Google service-account credentials, runnable without
 Claude/connectors) is wanted instead, that would be new work — a genuinely
 different implementation from what's described here, not something to
 "find and push."
+
+## Update: a GitHub-native version now also exists (added 2026-07-16)
+
+The above (Claude scheduled task + connectors) was the first version built,
+and still works. A second, independent implementation now also exists that
+runs entirely inside GitHub Actions with no dependency on Claude or a local
+machine being on:
+
+- `scripts/sheets_client.py` / `scripts/gmail_client.py` — real Python
+  wrappers around the Sheets and Gmail APIs
+- `scripts/sheets_sync.py` — the orchestrator CLI (`claim` / `progress` /
+  `complete` / `fail` / `check-approvals`)
+- `scripts/gmail_oauth_setup.py` — one-time local script to obtain a Gmail
+  OAuth refresh token
+- `.github/workflows/sheet_generate.yml` — polls the sheet every 20 minutes,
+  claims a pending row, runs generation, uploads the video as a GitHub
+  Release, and emails for approval
+- `.github/workflows/check_approvals.yml` — polls Gmail every 15 minutes for
+  Approve/Reject replies and syncs them back to the sheet
+- `CLAUDE.md`'s new "Sheets-driven mode" section — makes the existing
+  generation flow per-row-safe (`RUN_FOLDER`) and reports progress back to
+  the sheet, only when `RUN_FOLDER`/`SHEET_ROW` env vars are set (fully
+  backward compatible with the original local/CLI flow)
+
+See `docs/GITHUB_NATIVE_SHEETS_SETUP.md` for the exact credential setup
+steps this version needs (a Google Cloud service account for Sheets, and an
+OAuth client for Gmail — different from, and in addition to, the Higgsfield/
+Claude secrets already in use).
+
+Both versions read/write the same Google Sheet, so **don't run both at
+once** — pick one (recommended: the GitHub-native version, since it doesn't
+require the Claude app to stay open) and disable the other to avoid two
+systems claiming the same row.
