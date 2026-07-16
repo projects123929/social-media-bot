@@ -35,8 +35,23 @@ jobs:
       - name: Download approved video
         run: curl -sL -o final.mp4 "${{ steps.parse.outputs.video_url }}"
 
+      - name: Re-upload video to public media repo (so Instagram can fetch it)
+        uses: softprops/action-gh-release@v2
+        with:
+          repository: projects123929/media
+          token: ${{ secrets.MEDIA_REPO_PAT }}
+          tag_name: post-${{ steps.parse.outputs.date }}-${{ github.event.issue.number }}
+          name: "Approved post - ${{ steps.parse.outputs.date }}"
+          files: final.mp4
+          body: "Public copy of an approved video, for platform APIs that need a fetchable URL."
+
       - name: Run publish step
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
-        run: python scripts/publish.py --date "${{ steps.parse.outputs.date }}" --video-path final.mp4
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_BUSINESS_ACCOUNT_ID: ${{ secrets.INSTAGRAM_BUSINESS_ACCOUNT_ID }}
+        run: |
+          python scripts/publish.py --date "${{ steps.parse.outputs.date }}" \
+            --video-path final.mp4 \
+            --video-url "https://github.com/projects123929/media/releases/download/post-${{ steps.parse.outputs.date }}-${{ github.event.issue.number }}/final.mp4"
