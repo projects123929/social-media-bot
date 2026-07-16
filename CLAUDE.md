@@ -7,19 +7,22 @@ acting.
 
 ## Sheets-driven mode (optional)
 
-If the environment variables `RUN_FOLDER` and `SHEET_ROW` are both set
-(set by `.github/workflows/sheet_generate.yml` when a run is triggered by a
-Google Sheets dashboard row, per `docs/AUTOMATION_ARCHITECTURE.md`):
+If the environment variables `RUN_FOLDER` and `SHEET_ROW` are both set (set
+by `.github/workflows/generate.yml` when a run is triggered by a Google
+Sheets dashboard row, per `docs/AUTOMATION_ARCHITECTURE.md`):
 - Use `storage/pending/{RUN_FOLDER}/` everywhere these instructions say
   `storage/pending/{date}/` — this keeps same-day multi-row runs from
   overwriting each other's files.
-- After each major milestone, report progress back to the sheet:
-  `python scripts/sheets_sync.py progress --row {SHEET_ROW} --percent 20`
-  after the reference image, `40`/`60`/`80` after each of the 3 scenes,
-  `90` during captions/concatenation. This is free (no Higgsfield credits).
-- Skip step 9 (email/GitHub-issue notification) entirely — the calling
-  workflow sends the Sheets-flow approval email itself via
-  `scripts/sheets_sync.py complete` after this task finishes.
+- Update the row's Status/Progress/Approval Status/Upload Status columns
+  directly using whatever Google Sheets tool is available in this session
+  (an MCP connector's Sheets actions) — advance Progress after each
+  milestone (reference image, each of the 3 scenes, captions/concatenation)
+  and set Status="Completed" once the final video exists.
+- Send the approval email yourself using whatever Gmail tool is available
+  in this session, instead of step 9's `send_approval_email.py`/GitHub-issue
+  notification — see `docs/AUTOMATION_ARCHITECTURE.md` for the exact
+  email format and reply-matching convention (`[Row {SHEET_ROW}]` in the
+  subject).
 
 If these env vars are unset, ignore this section entirely — proceed with
 the standard `{date}`-based flow below exactly as documented.
