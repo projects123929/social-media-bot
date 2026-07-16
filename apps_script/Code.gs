@@ -15,7 +15,7 @@
 // Change this to any random string, then use the SAME value as the
 // GAS_SHARED_SECRET GitHub secret. Prevents randoms from calling your
 // Web App URL if they ever guess/find it.
-var SHARED_SECRET = "REPLACE_WITH_A_RANDOM_STRING";
+var SHARED_SECRET = "1ERSAZZMyk-NV9x2agGspbXIdu3-LnsjRfpTSoZizAM";
 
 var SHEET_NAME = "Sheet1";
 var COLUMNS = ["Video Title", "Aspect Ratio", "Status", "Progress", "Approval Status", "Upload Status", "Last Updated"];
