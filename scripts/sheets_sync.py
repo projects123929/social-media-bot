@@ -211,7 +211,8 @@ def _publish_row(row):
     row_number = row["row_number"]
     try:
         video_bytes = _download_private_asset(row["Video URL"])
-        public_url = _reupload_to_media_repo(video_bytes, f"sheet-row{row_number}-{_now()}")
+        safe_ts = _now().replace(":", "").replace("-", "")  # git tags can't contain ':'
+        public_url = _reupload_to_media_repo(video_bytes, f"sheet-row{row_number}-{safe_ts}")
         result = publish_to_instagram(public_url, row["Video Title"])
     except Exception as e:
         gas.update_row(row_number, {"Upload Status": "Failed", "Last Updated": _now()})
