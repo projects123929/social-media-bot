@@ -207,7 +207,18 @@ def cmd_check_approvals(args):
     checked = 0
     updated = 0
     for row in rows:
-        if row["Status"] != "Completed" or row["Approval Status"] != "Pending":
+        if row["Status"] != "Completed":
+            continue
+
+        # Already approved but never successfully published (e.g. Video URL
+        # was added after approval, or a previous publish attempt failed) -
+        # retry without needing a fresh Gmail reply.
+        if row["Approval Status"] == "Approved" and row["Upload Status"] != "Posted":
+            if row.get("Video URL"):
+                _publish_row(row)
+            continue
+
+        if row["Approval Status"] != "Pending":
             continue
         checked += 1
         result = gas.check_reply(f"[Row {row['row_number']}]")
