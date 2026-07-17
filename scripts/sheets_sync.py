@@ -18,9 +18,13 @@ import datetime
 import os
 import sys
 
+import requests
+
 import sheets_gas_client as gas
+from publish import publish_to_instagram
 
 STALE_MINUTES = 25
+MEDIA_REPO = "projects123929/media"
 
 
 def _now():
@@ -106,6 +110,7 @@ def cmd_complete(args):
         "Approval Status": "Pending",
         "Upload Status": "Pending",
         "Last Updated": _now(),
+        "Video URL": args.video_url,
     })
     subject = f"Approval Needed: {args.title} [Row {args.row}]"
     body = f"""
@@ -143,6 +148,60 @@ def cmd_fail(args):
     })
 
 
+def _download_private_asset(video_url):
+    token = os.environ["GITHUB_TOKEN"]
+    resp = requests.get(
+        video_url,
+        headers={"Authorization": f"token {token}", "Accept": "application/octet-stream"},
+        timeout=120,
+    )
+    resp.raise_for_status()
+    return resp.content
+
+
+def _reupload_to_media_repo(video_bytes, tag_name):
+    token = os.environ["MEDIA_REPO_PAT"]
+    headers = {"Authorization": f"token {token}", "Accept": "application/vnd.github+json"}
+
+    create_resp = requests.post(
+        f"https://api.github.com/repos/{MEDIA_REPO}/releases",
+        headers=headers,
+        json={"tag_name": tag_name, "name": tag_name},
+        timeout=30,
+    )
+    create_resp.raise_for_status()
+    upload_url = create_resp.json()["upload_url"].split("{")[0]
+
+    upload_resp = requests.post(
+        upload_url,
+        headers={**headers, "Content-Type": "video/mp4"},
+        params={"name": "final.mp4"},
+        data=video_bytes,
+        timeout=120,
+    )
+    upload_resp.raise_for_status()
+    return upload_resp.json()["browser_download_url"]
+
+
+def _publish_row(row):
+    row_number = row["row_number"]
+    try:
+        video_bytes = _download_private_asset(row["Video URL"])
+        public_url = _reupload_to_media_repo(video_bytes, f"sheet-row{row_number}-{_now()}")
+        result = publish_to_instagram(public_url, row["Video Title"])
+    except Exception as e:
+        gas.update_row(row_number, {"Upload Status": "Failed", "Last Updated": _now()})
+        print(f"Row {row_number}: publish failed - {e}")
+        return
+
+    if result["success"]:
+        gas.update_row(row_number, {"Upload Status": "Posted", "Last Updated": _now()})
+        print(f"Row {row_number}: posted - {result.get('permalink')}")
+    else:
+        gas.update_row(row_number, {"Upload Status": "Failed", "Last Updated": _now()})
+        print(f"Row {row_number}: publish failed - {result['error']}")
+
+
 def cmd_check_approvals(args):
     rows = gas.get_rows()
     checked = 0
@@ -155,6 +214,8 @@ def cmd_check_approvals(args):
         if result == "approve":
             gas.update_row(row["row_number"], {"Approval Status": "Approved", "Last Updated": _now()})
             updated += 1
+            row["Approval Status"] = "Approved"
+            _publish_row(row)
         elif result == "reject":
             gas.update_row(row["row_number"], {"Approval Status": "Rejected", "Last Updated": _now()})
             updated += 1

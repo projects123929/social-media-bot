@@ -109,9 +109,13 @@ jobs:
           GAS_SHARED_SECRET: ${{ secrets.GAS_SHARED_SECRET }}
         run: cd scripts && python sheets_sync.py fail --row "${{ steps.claim.outputs.row_number }}"
 
-      - name: Check Gmail for Approve/Reject replies on completed rows
+      - name: Check Gmail for Approve/Reject replies, publish newly-approved rows
         if: always()
         env:
           GAS_WEBAPP_URL: ${{ secrets.GAS_WEBAPP_URL }}
           GAS_SHARED_SECRET: ${{ secrets.GAS_SHARED_SECRET }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MEDIA_REPO_PAT: ${{ secrets.MEDIA_REPO_PAT }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_BUSINESS_ACCOUNT_ID: ${{ secrets.INSTAGRAM_BUSINESS_ACCOUNT_ID }}
         run: cd scripts && python sheets_sync.py check-approvals
