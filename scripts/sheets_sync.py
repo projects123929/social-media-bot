@@ -149,14 +149,35 @@ def cmd_fail(args):
 
 
 def _download_private_asset(video_url):
+    # video_url looks like https://github.com/{owner}/{repo}/releases/download/{tag}/{filename}
+    # Plain authenticated GETs to that browser-download URL 404 for private
+    # repos in automation - GitHub's documented way is via the API's asset
+    # endpoint instead: look up the release by tag, find the asset's API
+    # `url`, then GET that with Accept: application/octet-stream.
     token = os.environ["GITHUB_TOKEN"]
-    resp = requests.get(
-        video_url,
+    headers = {"Authorization": f"token {token}", "Accept": "application/vnd.github+json"}
+
+    parts = video_url.rstrip("/").split("/")
+    filename, tag = parts[-1], parts[-2]
+    owner_repo = "/".join(parts[3:5])
+
+    release_resp = requests.get(
+        f"https://api.github.com/repos/{owner_repo}/releases/tags/{tag}",
+        headers=headers, timeout=30,
+    )
+    release_resp.raise_for_status()
+    assets = release_resp.json()["assets"]
+    asset = next((a for a in assets if a["name"] == filename), None)
+    if asset is None:
+        raise RuntimeError(f"Asset '{filename}' not found in release '{tag}'")
+
+    asset_resp = requests.get(
+        asset["url"],
         headers={"Authorization": f"token {token}", "Accept": "application/octet-stream"},
         timeout=120,
     )
-    resp.raise_for_status()
-    return resp.content
+    asset_resp.raise_for_status()
+    return asset_resp.content
 
 
 def _reupload_to_media_repo(video_bytes, tag_name):
