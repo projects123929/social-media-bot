@@ -190,7 +190,10 @@ def _reupload_to_media_repo(video_bytes, tag_name):
         json={"tag_name": tag_name, "name": tag_name},
         timeout=30,
     )
-    create_resp.raise_for_status()
+    if not create_resp.ok:
+        raise RuntimeError(
+            f"Create release failed ({create_resp.status_code}): {create_resp.text}"
+        )
     upload_url = create_resp.json()["upload_url"].split("{")[0]
 
     upload_resp = requests.post(
