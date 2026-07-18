@@ -67,6 +67,15 @@ def cmd_claim(args):
                 })
                 row["Status"] = "Pending"
 
+    # One video per day, regardless of how many rows are queued: if any row
+    # was already claimed/processed today (any outcome), don't claim another.
+    today_str = datetime.date.today().isoformat()
+    for row in rows:
+        if row["Status"] in ("In Progress", "Completed") and row.get("Last Updated", "").startswith(today_str):
+            _gh_output("has_row", "false")
+            print(f"Row {row['row_number']} already processed today ({today_str}); skipping claim.")
+            return
+
     candidates = [r for r in rows if r["Status"] in ("", "Pending")]
     if not candidates:
         _gh_output("has_row", "false")

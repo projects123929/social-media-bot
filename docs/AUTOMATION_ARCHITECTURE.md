@@ -41,6 +41,9 @@ above:
 - `claim` — finds the oldest Pending/blank row (or recovers a stale
   "In Progress" row abandoned by a crashed run >25 min ago), claims it,
   prints its Video Title/Aspect Ratio/row number as GitHub Actions outputs.
+  **One video per day**: if any row was already claimed/processed today
+  (any outcome - Completed, In Progress), claim is skipped even if other
+  Pending rows exist in the queue.
 - `progress --row N --percent P` — updates the Progress bar text.
 - `complete --row N --title T --video-url U` — marks a row Completed and
   sends the HTML approval email (subject includes `[Row N]` for later
