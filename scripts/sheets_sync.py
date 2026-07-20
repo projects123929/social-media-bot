@@ -45,7 +45,16 @@ def _gh_output(key, value):
     print(line)
 
 
+GENERATION_START_UTC = datetime.time(5, 30)  # 11:00 IST
+
+
 def cmd_claim(args):
+    now_utc = datetime.datetime.now(datetime.timezone.utc)
+    if now_utc.time() < GENERATION_START_UTC:
+        _gh_output("has_row", "false")
+        print(f"Before daily generation start time (11:00 IST / {GENERATION_START_UTC} UTC); skipping claim.")
+        return
+
     rows = gas.get_rows()
 
     # Stale-row recovery: an "In Progress" row whose Last Updated is old

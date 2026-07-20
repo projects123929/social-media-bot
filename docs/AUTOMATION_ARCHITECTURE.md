@@ -43,7 +43,10 @@ above:
   prints its Video Title/Aspect Ratio/row number as GitHub Actions outputs.
   **One video per day**: if any row was already claimed/processed today
   (any outcome - Completed, In Progress), claim is skipped even if other
-  Pending rows exist in the queue.
+  Pending rows exist in the queue. **Not before 11:00 IST (05:30 UTC)**:
+  claim also skips if it's earlier than that in the day, so the first
+  generation attempt each day happens no earlier than ~11am India time
+  (the exact minute depends on the workflow's 20-min cron alignment).
 - `progress --row N --percent P` — updates the Progress bar text.
 - `complete --row N --title T --video-url U` — marks a row Completed and
   sends the HTML approval email (subject includes `[Row N]` for later
