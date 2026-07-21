@@ -181,7 +181,7 @@ def _publish_row(row):
         return
 
     if result["success"]:
-        gas.update_row(row_number, {"Upload Status": "Posted", "Last Updated": _now()})
+        gas.update_row(row_number, {"Upload Status": "Uploaded", "Last Updated": _now()})
         print(f"Row {row_number}: posted - {result.get('permalink')}")
     else:
         gas.update_row(row_number, {"Upload Status": "Failed", "Last Updated": _now()})
@@ -199,7 +199,7 @@ def cmd_check_approvals(args):
         # Already approved but never successfully published (e.g. Video URL
         # was added after approval, or a previous publish attempt failed) -
         # retry without needing a fresh Gmail reply.
-        if row["Approval Status"] == "Approved" and row["Upload Status"] != "Posted":
+        if row["Approval Status"] == "Approved" and row["Upload Status"] != "Uploaded":
             if row.get("Video URL"):
                 _publish_row(row)
             continue
