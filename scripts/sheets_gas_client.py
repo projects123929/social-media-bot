@@ -5,10 +5,13 @@ Auth: GAS_WEBAPP_URL (the deployed Web App URL) + GAS_SHARED_SECRET (must
 match SHARED_SECRET in Code.gs), both read from env vars.
 """
 import os
+import time
 
 import requests
 
 TIMEOUT = 30
+MAX_ATTEMPTS = 3
+RETRY_DELAY_SECONDS = 3
 
 
 def _url():
@@ -27,12 +30,28 @@ def _secret():
 
 def _call(action, **params):
     payload = {"action": action, "secret": _secret(), **params}
-    resp = requests.post(_url(), json=payload, timeout=TIMEOUT)
-    resp.raise_for_status()
-    data = resp.json()
-    if "error" in data:
-        raise RuntimeError(f"Apps Script error ({action}): {data['error']}")
-    return data
+    last_error = None
+    for attempt in range(1, MAX_ATTEMPTS + 1):
+        try:
+            resp = requests.post(_url(), json=payload, timeout=TIMEOUT)
+            resp.raise_for_status()
+            data = resp.json()
+        except (requests.exceptions.RequestException, ValueError) as e:
+            # Apps Script Web Apps respond via a redirect to a second
+            # "echo" URL; different HTTP clients occasionally mishandle
+            # that redirect on POST (empty body / 411), transiently.
+            # Retrying almost always succeeds.
+            last_error = e
+            print(f"[sheets_gas_client] {action} attempt {attempt}/{MAX_ATTEMPTS} failed: {e}")
+            if attempt < MAX_ATTEMPTS:
+                time.sleep(RETRY_DELAY_SECONDS)
+            continue
+
+        if "error" in data:
+            raise RuntimeError(f"Apps Script error ({action}): {data['error']}")
+        return data
+
+    raise RuntimeError(f"Apps Script call ({action}) failed after {MAX_ATTEMPTS} attempts: {last_error}")
 
 
 def get_rows():
