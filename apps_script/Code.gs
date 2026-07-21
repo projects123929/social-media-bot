@@ -67,7 +67,7 @@ function _handle(body) {
         return _json({ rows: _getRows() });
       case "update_row":
         _updateRow(body.row, body.values);
-        return _json({ ok: true });
+        return _json({ ok: true, row: body.row, updated: body.values });
       case "send_email":
         _sendEmail(body.subject, body.html_body, body.to);
         return _json({ ok: true });
@@ -108,6 +108,7 @@ function _updateRow(rowNumber, values) {
     if (colIndex === -1) throw new Error("Unknown column: " + colName);
     sheet.getRange(rowNumber, colIndex + 1).setValue(values[colName]);
   }
+  SpreadsheetApp.flush();
 }
 
 function _sendEmail(subject, htmlBody, to) {
