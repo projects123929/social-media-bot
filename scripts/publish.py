@@ -67,7 +67,7 @@ def publish_to_instagram(video_url, caption):
     while time.time() < deadline:
         status_resp = requests.get(
             f"{GRAPH_API_BASE}/{creation_id}",
-            params={"fields": "status_code", "access_token": access_token},
+            params={"fields": "status_code,status", "access_token": access_token},
             timeout=30,
         )
         status_data = status_resp.json()
