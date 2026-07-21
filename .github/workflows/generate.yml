@@ -2,7 +2,7 @@ name: Generate cartoon short and request approval
 
 on:
   schedule:
-    - cron: "*/20 * * * *"   # every 20 minutes — polls the Sheets dashboard for a pending row
+    - cron: "*/5 * * * *"   # TEMP: every 5 min for testing (revert to */20 for normal use) — polls the Sheets dashboard for a pending row
   workflow_dispatch: {}
 
 permissions:
