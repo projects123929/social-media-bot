@@ -27,7 +27,36 @@ function doPost(e) {
   } catch (err) {
     return _json({ error: "Invalid JSON body" }, 400);
   }
+  return _handle(body);
+}
 
+// GET-based entry point, preferred by the Python client: Apps Script Web
+// Apps always respond via a 302 to a second "echo" URL, and POST requests
+// to that mechanism have proven unreliable across HTTP clients (lost
+// body, 411s, empty responses). GET has no body to lose, sidestepping the
+// whole problem. `values` (an object) is passed JSON-encoded in the
+// `values` query param.
+function doGet(e) {
+  var body = {
+    action: e.parameter.action,
+    secret: e.parameter.secret,
+    row: e.parameter.row ? Number(e.parameter.row) : undefined,
+    subject: e.parameter.subject,
+    html_body: e.parameter.html_body,
+    to: e.parameter.to,
+    subject_contains: e.parameter.subject_contains,
+  };
+  if (e.parameter.values) {
+    try {
+      body.values = JSON.parse(e.parameter.values);
+    } catch (err) {
+      return _json({ error: "Invalid JSON in values param" }, 400);
+    }
+  }
+  return _handle(body);
+}
+
+function _handle(body) {
   if (body.secret !== SHARED_SECRET) {
     return _json({ error: "Bad secret" }, 403);
   }

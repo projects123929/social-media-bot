@@ -4,6 +4,7 @@ bridges the dashboard sheet + Gmail — no Google Cloud project needed.
 Auth: GAS_WEBAPP_URL (the deployed Web App URL) + GAS_SHARED_SECRET (must
 match SHARED_SECRET in Code.gs), both read from env vars.
 """
+import json
 import os
 import time
 
@@ -28,28 +29,20 @@ def _secret():
     return secret
 
 
-def _post_following_redirect_as_get(url, payload):
-    # Apps Script Web Apps always answer a POST to /exec with a 302 to a
-    # second "echo" URL that serves the already-computed response (the
-    # actual doPost() side effects, like writing to the sheet, already
-    # happened during this first request). Letting requests/curl
-    # auto-follow that redirect re-sends it as a POST without a proper
-    # body/Content-Length, which Google rejects (411) or which comes back
-    # empty. The correct move is to not auto-follow, and instead fetch the
-    # redirect target ourselves with a plain GET (which never needs a body).
-    resp = requests.post(url, json=payload, timeout=TIMEOUT, allow_redirects=False)
-    if resp.status_code in (301, 302, 303, 307, 308) and "Location" in resp.headers:
-        resp = requests.get(resp.headers["Location"], timeout=TIMEOUT)
-    resp.raise_for_status()
-    return resp
-
-
 def _call(action, **params):
-    payload = {"action": action, "secret": _secret(), **params}
+    # GET, not POST: Apps Script Web Apps always answer via a 302 to a
+    # second "echo" URL, and POST requests through that redirect proved
+    # unreliable across HTTP clients (lost body, 411s, empty responses).
+    # GET has no body to lose, so its redirect just works normally.
+    query = {"action": action, "secret": _secret()}
+    for key, value in params.items():
+        query[key] = json.dumps(value) if isinstance(value, (dict, list)) else value
+
     last_error = None
     for attempt in range(1, MAX_ATTEMPTS + 1):
         try:
-            resp = _post_following_redirect_as_get(_url(), payload)
+            resp = requests.get(_url(), params=query, timeout=TIMEOUT)
+            resp.raise_for_status()
             data = resp.json()
         except (requests.exceptions.RequestException, ValueError) as e:
             last_error = e
