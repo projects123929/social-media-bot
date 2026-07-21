@@ -18,13 +18,10 @@ import datetime
 import os
 import sys
 
-import requests
-
 import sheets_gas_client as gas
 from publish import publish_to_instagram
 
 STALE_MINUTES = 25
-MEDIA_REPO = "projects123929/media"
 
 
 def _now():
@@ -166,72 +163,13 @@ def cmd_fail(args):
     })
 
 
-def _download_private_asset(video_url):
-    # video_url looks like https://github.com/{owner}/{repo}/releases/download/{tag}/{filename}
-    # Plain authenticated GETs to that browser-download URL 404 for private
-    # repos in automation - GitHub's documented way is via the API's asset
-    # endpoint instead: look up the release by tag, find the asset's API
-    # `url`, then GET that with Accept: application/octet-stream.
-    token = os.environ["GITHUB_TOKEN"]
-    headers = {"Authorization": f"token {token}", "Accept": "application/vnd.github+json"}
-
-    parts = video_url.rstrip("/").split("/")
-    filename, tag = parts[-1], parts[-2]
-    owner_repo = "/".join(parts[3:5])
-
-    release_resp = requests.get(
-        f"https://api.github.com/repos/{owner_repo}/releases/tags/{tag}",
-        headers=headers, timeout=30,
-    )
-    release_resp.raise_for_status()
-    assets = release_resp.json()["assets"]
-    asset = next((a for a in assets if a["name"] == filename), None)
-    if asset is None:
-        raise RuntimeError(f"Asset '{filename}' not found in release '{tag}'")
-
-    asset_resp = requests.get(
-        asset["url"],
-        headers={"Authorization": f"token {token}", "Accept": "application/octet-stream"},
-        timeout=120,
-    )
-    asset_resp.raise_for_status()
-    return asset_resp.content
-
-
-def _reupload_to_media_repo(video_bytes, tag_name):
-    token = os.environ["MEDIA_REPO_PAT"]
-    headers = {"Authorization": f"token {token}", "Accept": "application/vnd.github+json"}
-
-    create_resp = requests.post(
-        f"https://api.github.com/repos/{MEDIA_REPO}/releases",
-        headers=headers,
-        json={"tag_name": tag_name, "name": tag_name},
-        timeout=30,
-    )
-    if not create_resp.ok:
-        raise RuntimeError(
-            f"Create release failed ({create_resp.status_code}): {create_resp.text}"
-        )
-    upload_url = create_resp.json()["upload_url"].split("{")[0]
-
-    upload_resp = requests.post(
-        upload_url,
-        headers={**headers, "Content-Type": "video/mp4"},
-        params={"name": "final.mp4"},
-        data=video_bytes,
-        timeout=120,
-    )
-    upload_resp.raise_for_status()
-    return upload_resp.json()["browser_download_url"]
-
-
 def _publish_row(row):
+    # Video URL is already a public release asset on the media repo
+    # (uploaded there directly by generate.yml), so no need to download it
+    # from a private repo and re-upload it here anymore.
     row_number = row["row_number"]
     try:
-        video_bytes = _download_private_asset(row["Video URL"])
-        safe_ts = _now().replace(":", "").replace("-", "")  # git tags can't contain ':'
-        public_url = _reupload_to_media_repo(video_bytes, f"sheet-row{row_number}-{safe_ts}")
-        result = publish_to_instagram(public_url, row["Video Title"])
+        result = publish_to_instagram(row["Video URL"], row["Video Title"])
     except Exception as e:
         gas.update_row(row_number, {"Upload Status": "Failed", "Last Updated": _now()})
         print(f"Row {row_number}: publish failed - {e}")

@@ -80,11 +80,13 @@ jobs:
             echo "No changes to characters.json"
           fi
 
-      - name: Publish video as a GitHub Release asset
+      - name: Publish video as a public GitHub Release asset (media repo)
         if: steps.claim.outputs.has_row == 'true'
         id: release
         uses: softprops/action-gh-release@v2
         with:
+          repository: projects123929/media
+          token: ${{ secrets.MEDIA_REPO_PAT }}
           tag_name: sheet-run-${{ steps.claim.outputs.run_folder }}-${{ github.run_number }}
           name: "Cartoon short - Row ${{ steps.claim.outputs.row_number }} (${{ steps.claim.outputs.today }})"
           files: storage/pending/${{ steps.claim.outputs.run_folder }}/final.mp4
@@ -100,7 +102,7 @@ jobs:
           python sheets_sync.py complete \
             --row "${{ steps.claim.outputs.row_number }}" \
             --title "${{ steps.claim.outputs.idea }}" \
-            --video-url "https://github.com/${{ github.repository }}/releases/download/sheet-run-${{ steps.claim.outputs.run_folder }}-${{ github.run_number }}/final.mp4"
+            --video-url "https://github.com/projects123929/media/releases/download/sheet-run-${{ steps.claim.outputs.run_folder }}-${{ github.run_number }}/final.mp4"
 
       - name: Mark row failed if generation errored
         if: steps.claim.outputs.has_row == 'true' && failure()
@@ -114,8 +116,6 @@ jobs:
         env:
           GAS_WEBAPP_URL: ${{ secrets.GAS_WEBAPP_URL }}
           GAS_SHARED_SECRET: ${{ secrets.GAS_SHARED_SECRET }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          MEDIA_REPO_PAT: ${{ secrets.MEDIA_REPO_PAT }}
           INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
           INSTAGRAM_BUSINESS_ACCOUNT_ID: ${{ secrets.INSTAGRAM_BUSINESS_ACCOUNT_ID }}
         run: cd scripts && python sheets_sync.py check-approvals
