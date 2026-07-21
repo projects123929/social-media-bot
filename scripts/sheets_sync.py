@@ -46,8 +46,12 @@ GENERATION_START_UTC = datetime.time(5, 30)  # 11:00 IST
 
 
 def cmd_claim(args):
+    force = os.environ.get("FORCE_GENERATION") == "true"
+    if force:
+        print("FORCE_GENERATION=true: bypassing the 11:00 IST time gate and one-per-day limit (testing only).")
+
     now_utc = datetime.datetime.now(datetime.timezone.utc)
-    if now_utc.time() < GENERATION_START_UTC:
+    if not force and now_utc.time() < GENERATION_START_UTC:
         _gh_output("has_row", "false")
         print(f"Before daily generation start time (11:00 IST / {GENERATION_START_UTC} UTC); skipping claim.")
         return
@@ -76,11 +80,12 @@ def cmd_claim(args):
     # One video per day, regardless of how many rows are queued: if any row
     # was already claimed/processed today (any outcome), don't claim another.
     today_str = datetime.date.today().isoformat()
-    for row in rows:
-        if row["Status"] in ("In Progress", "Completed") and row.get("Last Updated", "").startswith(today_str):
-            _gh_output("has_row", "false")
-            print(f"Row {row['row_number']} already processed today ({today_str}); skipping claim.")
-            return
+    if not force:
+        for row in rows:
+            if row["Status"] in ("In Progress", "Completed") and row.get("Last Updated", "").startswith(today_str):
+                _gh_output("has_row", "false")
+                print(f"Row {row['row_number']} already processed today ({today_str}); skipping claim.")
+                return
 
     candidates = [r for r in rows if r["Status"] in ("", "Pending")]
     if not candidates:

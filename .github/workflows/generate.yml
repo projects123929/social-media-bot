@@ -3,7 +3,12 @@ name: Generate cartoon short and request approval
 on:
   schedule:
     - cron: "*/5 * * * *"   # TEMP: every 5 min for testing (revert to */20 for normal use) — polls the Sheets dashboard for a pending row
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      force_generation:
+        description: "Bypass the 11:00 IST time gate and one-per-day limit (testing only)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -51,6 +56,7 @@ jobs:
         env:
           GAS_WEBAPP_URL: ${{ secrets.GAS_WEBAPP_URL }}
           GAS_SHARED_SECRET: ${{ secrets.GAS_SHARED_SECRET }}
+          FORCE_GENERATION: ${{ github.event.inputs.force_generation }}
         run: cd scripts && python sheets_sync.py claim
 
       - name: Run generation (Claude Code)
