@@ -5,6 +5,14 @@ pipeline. This file is your instructions when invoked for that task (locally
 via `claude`, or headlessly in CI via `claude -p`). Read it fully before
 acting.
 
+**Never run a tool call in the background (no `run_in_background`, no
+backgrounding a Bash command) at any point in this task.** When invoked
+headlessly via `claude -p` (as CI does), the whole process exits the
+instant your turn ends — a backgrounded job has no one left to notify when
+it finishes, and gets silently abandoned along with the rest of the run.
+Every command, including each Higgsfield generation call, must be run and
+waited on synchronously (foreground) before moving to the next step.
+
 ## Sheets-driven mode (optional)
 
 If the environment variables `RUN_FOLDER` and `SHEET_ROW` are both set (set
@@ -80,7 +88,12 @@ yet either, so:
    - `full`: same 3-scenes-of-10s structure, but 1080p and/or up to 5
      scenes if the storyboard genuinely needs more beats — only deviate
      from the 3x10s default when the idea requires it.
-5. Generate each scene **in order**, chaining continuity between them:
+5. Generate each scene **in order**, chaining continuity between them.
+   Run each `higgsfield_scene.py` call in the **foreground** and wait for
+   it to actually finish before doing anything else — do not background
+   it (see the warning at the top of this file; `higgsfield_scene.py`
+   already blocks until Higgsfield's job completes via `--wait`, so there
+   is never a reason to background it).
    - Scene 1: `python scripts/higgsfield_scene.py --prompt "..." --out
      storage/pending/{date}/clips/scene1.mp4 --start-image <the run's
      reference image from step 2>`.
