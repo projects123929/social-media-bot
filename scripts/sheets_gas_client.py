@@ -28,19 +28,30 @@ def _secret():
     return secret
 
 
+def _post_following_redirect_as_get(url, payload):
+    # Apps Script Web Apps always answer a POST to /exec with a 302 to a
+    # second "echo" URL that serves the already-computed response (the
+    # actual doPost() side effects, like writing to the sheet, already
+    # happened during this first request). Letting requests/curl
+    # auto-follow that redirect re-sends it as a POST without a proper
+    # body/Content-Length, which Google rejects (411) or which comes back
+    # empty. The correct move is to not auto-follow, and instead fetch the
+    # redirect target ourselves with a plain GET (which never needs a body).
+    resp = requests.post(url, json=payload, timeout=TIMEOUT, allow_redirects=False)
+    if resp.status_code in (301, 302, 303, 307, 308) and "Location" in resp.headers:
+        resp = requests.get(resp.headers["Location"], timeout=TIMEOUT)
+    resp.raise_for_status()
+    return resp
+
+
 def _call(action, **params):
     payload = {"action": action, "secret": _secret(), **params}
     last_error = None
     for attempt in range(1, MAX_ATTEMPTS + 1):
         try:
-            resp = requests.post(_url(), json=payload, timeout=TIMEOUT)
-            resp.raise_for_status()
+            resp = _post_following_redirect_as_get(_url(), payload)
             data = resp.json()
         except (requests.exceptions.RequestException, ValueError) as e:
-            # Apps Script Web Apps respond via a redirect to a second
-            # "echo" URL; different HTTP clients occasionally mishandle
-            # that redirect on POST (empty body / 411), transiently.
-            # Retrying almost always succeeds.
             last_error = e
             print(f"[sheets_gas_client] {action} attempt {attempt}/{MAX_ATTEMPTS} failed: {e}")
             if attempt < MAX_ATTEMPTS:
