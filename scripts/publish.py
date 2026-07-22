@@ -35,7 +35,7 @@ def comment_on_issue(message):
     )
 
 
-def publish_to_instagram(video_url, caption, aspect_ratio="9:16"):
+def publish_to_instagram(video_url, caption):
     access_token = os.environ.get("INSTAGRAM_ACCESS_TOKEN")
     ig_account_id = os.environ.get("INSTAGRAM_BUSINESS_ACCOUNT_ID")
     if not (access_token and ig_account_id):
@@ -45,9 +45,11 @@ def publish_to_instagram(video_url, caption, aspect_ratio="9:16"):
             "error": "INSTAGRAM_ACCESS_TOKEN / INSTAGRAM_BUSINESS_ACCOUNT_ID not set",
         }
 
-    # REELS requires vertical video; horizontal/other ratios go up as a
-    # regular feed video post instead.
-    media_type = "REELS" if aspect_ratio == "9:16" else "VIDEO"
+    # Instagram deprecated the "VIDEO" media_type entirely - all video
+    # posts (any aspect ratio) must use REELS now, confirmed by Instagram's
+    # own API error: "The VIDEO value for media_type is deprecated. Use
+    # the REELS media type to publish a video to your Instagram feed."
+    media_type = "REELS"
 
     # 1. Create the media container.
     create_resp = requests.post(

@@ -178,9 +178,8 @@ def _publish_row(row):
     # (uploaded there directly by generate.yml), so no need to download it
     # from a private repo and re-upload it here anymore.
     row_number = row["row_number"]
-    aspect_ratio = "16:9" if "16:9" in row.get("Aspect Ratio", "") else "9:16"
     try:
-        result = publish_to_instagram(row["Video URL"], row["Video Title"], aspect_ratio)
+        result = publish_to_instagram(row["Video URL"], row["Video Title"])
     except Exception as e:
         gas.update_row(row_number, {"Upload Status": "Failed", "Last Updated": _now()})
         print(f"Row {row_number}: publish failed - {e}")
