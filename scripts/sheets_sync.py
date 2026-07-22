@@ -95,14 +95,18 @@ def cmd_claim(args):
     row = candidates[0]
     row_number = row["row_number"]
     title = row["Video Title"]
-    aspect = row["Aspect Ratio"]
+    aspect_label = row["Aspect Ratio"]
     today = datetime.date.today().isoformat()
     run_folder = f"{today}-row{row_number}"
 
-    if "9:16" not in aspect:
+    if "9:16" in aspect_label:
+        aspect_ratio = "9:16"
+    elif "16:9" in aspect_label:
+        aspect_ratio = "16:9"
+    else:
         gas.update_row(row_number, {
             "Status": "Completed",
-            "Progress": "⚠ unsupported aspect ratio (9:16 only for now)",
+            "Progress": "⚠ unsupported aspect ratio (only 9:16 or 16:9 for now)",
             "Approval Status": "Rejected",
             "Upload Status": "Failed",
             "Last Updated": _now(),
@@ -117,6 +121,7 @@ def cmd_claim(args):
     _gh_output("idea", title)
     _gh_output("run_folder", run_folder)
     _gh_output("today", today)
+    _gh_output("aspect_ratio", aspect_ratio)
 
 
 def cmd_progress(args):
@@ -173,8 +178,9 @@ def _publish_row(row):
     # (uploaded there directly by generate.yml), so no need to download it
     # from a private repo and re-upload it here anymore.
     row_number = row["row_number"]
+    aspect_ratio = "16:9" if "16:9" in row.get("Aspect Ratio", "") else "9:16"
     try:
-        result = publish_to_instagram(row["Video URL"], row["Video Title"])
+        result = publish_to_instagram(row["Video URL"], row["Video Title"], aspect_ratio)
     except Exception as e:
         gas.update_row(row_number, {"Upload Status": "Failed", "Last Updated": _now()})
         print(f"Row {row_number}: publish failed - {e}")

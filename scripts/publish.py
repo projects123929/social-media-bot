@@ -35,7 +35,7 @@ def comment_on_issue(message):
     )
 
 
-def publish_to_instagram(video_url, caption):
+def publish_to_instagram(video_url, caption, aspect_ratio="9:16"):
     access_token = os.environ.get("INSTAGRAM_ACCESS_TOKEN")
     ig_account_id = os.environ.get("INSTAGRAM_BUSINESS_ACCOUNT_ID")
     if not (access_token and ig_account_id):
@@ -45,13 +45,17 @@ def publish_to_instagram(video_url, caption):
             "error": "INSTAGRAM_ACCESS_TOKEN / INSTAGRAM_BUSINESS_ACCOUNT_ID not set",
         }
 
+    # REELS requires vertical video; horizontal/other ratios go up as a
+    # regular feed video post instead.
+    media_type = "REELS" if aspect_ratio == "9:16" else "VIDEO"
+
     # 1. Create the media container.
     create_resp = requests.post(
         f"{GRAPH_API_BASE}/{ig_account_id}/media",
         data={
             "video_url": video_url,
             "caption": caption,
-            "media_type": "REELS",
+            "media_type": media_type,
             "access_token": access_token,
         },
         timeout=60,

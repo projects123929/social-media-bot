@@ -80,23 +80,29 @@ yet either, so:
      caption line. Respect `rules.md`'s fixed constraints (duration,
      aspect ratio, max scenes, content restrictions) and `theme.json`'s
      tone/content pillars throughout.
-4. **Cost mode** — check the `GENERATION_MODE` env var:
+4. **Aspect ratio** — check the `ASPECT_RATIO` env var: use its value
+   (`9:16` or `16:9`) for every scene's `--aspect-ratio` flag. If unset,
+   default to `9:16`. Frame the storyboard/shot composition appropriately
+   for whichever orientation this run is — don't just default to vertical
+   framing for a 16:9 run.
+5. **Cost mode** — check the `GENERATION_MODE` env var:
    - `test` (default, or unset): **3 scenes, 10 seconds each = 30 seconds
-     total**, using `kling3_0_turbo` at 720p, 9:16. This is the standard
+     total**, using `kling3_0_turbo` at 720p. This is the standard
      run size — matches `rules.md`'s 30-35s target exactly, so don't
      shrink it further "to save credits" unless explicitly told to.
    - `full`: same 3-scenes-of-10s structure, but 1080p and/or up to 5
      scenes if the storyboard genuinely needs more beats — only deviate
      from the 3x10s default when the idea requires it.
-5. Generate each scene **in order**, chaining continuity between them.
+6. Generate each scene **in order**, chaining continuity between them.
    Run each `higgsfield_scene.py` call in the **foreground** and wait for
    it to actually finish before doing anything else — do not background
    it (see the warning at the top of this file; `higgsfield_scene.py`
    already blocks until Higgsfield's job completes via `--wait`, so there
-   is never a reason to background it).
+   is never a reason to background it). Pass `--aspect-ratio $ASPECT_RATIO`
+   (or `16:9`/`9:16` explicitly, matching step 4) on every scene call.
    - Scene 1: `python scripts/higgsfield_scene.py --prompt "..." --out
-     storage/pending/{date}/clips/scene1.mp4 --start-image <the run's
-     reference image from step 2>`.
+     storage/pending/{date}/clips/scene1.mp4 --aspect-ratio <9:16 or 16:9>
+     --start-image <the run's reference image from step 2>`.
    - After scene 1 finishes, extract its last frame: `python
      scripts/extract_last_frame.py --in
      storage/pending/{date}/clips/scene1.mp4 --out
@@ -112,22 +118,22 @@ yet either, so:
    - Check `higgsfield generate create --help` / `higgsfield model get
      <model>` if you're unsure of the exact flag name for supplying a
      start image.
-6. Burn each scene's caption: `python scripts/burn_caption.py --in
+7. Burn each scene's caption: `python scripts/burn_caption.py --in
    storage/pending/{date}/clips/sceneN.mp4 --out
    storage/pending/{date}/clips/sceneN_captioned.mp4 --text "..."`.
-7. Concatenate all captioned clips into the final video:
+8. Concatenate all captioned clips into the final video:
    `python scripts/concat_clips.py --out storage/pending/{date}/final.mp4
    --clips storage/pending/{date}/clips/scene1_captioned.mp4 ...`.
-8. Write the status file: `python scripts/write_status.py --date {date}
+9. Write the status file: `python scripts/write_status.py --date {date}
    --idea "..." --character-id "{short character summary, e.g. main
    character names}" --video-path storage/pending/{date}/final.mp4`.
-9. Notify for approval — check the `NOTIFY_METHOD` env var:
-   - `email` (default, or unset): run `python scripts/send_approval_email.py
-     --date {date} --idea "..."`.
-   - `github_issue`: skip notification — the calling GitHub Actions workflow
-     handles uploading the video as a release asset and opening the
-     approval issue after this task finishes.
-10. Do not publish anything yourself. Publishing only happens after a human
+10. Notify for approval — check the `NOTIFY_METHOD` env var:
+    - `email` (default, or unset): run `python scripts/send_approval_email.py
+      --date {date} --idea "..."`.
+    - `github_issue`: skip notification — the calling GitHub Actions workflow
+      handles uploading the video as a release asset and opening the
+      approval issue after this task finishes.
+11. Do not publish anything yourself. Publishing only happens after a human
     approves, via `scripts/publish.py`, triggered separately by the
     approval flow (locally: `approval_server.py`; in CI: the `approved`
     issue label).
