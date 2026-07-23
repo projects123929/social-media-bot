@@ -177,19 +177,25 @@ def _publish_row(row):
     # Video URL is already a public release asset on the media repo
     # (uploaded there directly by generate.yml), so no need to download it
     # from a private repo and re-upload it here anymore.
+    # Note: deliberately NOT touching "Last Updated" here - that field is
+    # used by the daily generation cap and stale-row recovery to mean
+    # "when was this row's generation last active", and publish retries
+    # aren't generation activity. Touching it here previously caused a
+    # days-old stuck row's repeated publish retries to look like "today",
+    # blocking new generation.
     row_number = row["row_number"]
     try:
         result = publish_to_instagram(row["Video URL"], row["Video Title"])
     except Exception as e:
-        gas.update_row(row_number, {"Upload Status": "Failed", "Last Updated": _now()})
+        gas.update_row(row_number, {"Upload Status": "Failed"})
         print(f"Row {row_number}: publish failed - {e}")
         return
 
     if result["success"]:
-        gas.update_row(row_number, {"Upload Status": "Uploaded", "Last Updated": _now()})
+        gas.update_row(row_number, {"Upload Status": "Uploaded"})
         print(f"Row {row_number}: posted - {result.get('permalink')}")
     else:
-        gas.update_row(row_number, {"Upload Status": "Failed", "Last Updated": _now()})
+        gas.update_row(row_number, {"Upload Status": "Failed"})
         print(f"Row {row_number}: publish failed - {result['error']}")
 
 
