@@ -3,10 +3,11 @@
 Triggered only after an Approve action (locally: approval_server.py;
 in CI: .github/workflows/publish.yml on the 'approved' issue label).
 
-Instagram (Graph API) is wired up. YouTube (Data API v3) is not yet -
-needs a Google Cloud project + OAuth credentials for the target channel.
+Both Instagram (Graph API) and YouTube (Data API v3) are wired up.
 """
 import argparse
+import io
+import json
 import os
 import time
 
@@ -114,12 +115,56 @@ def publish_to_instagram(video_url, caption):
     }
 
 
-def publish_to_youtube(video_path, title, description):
-    return {
-        "platform": "youtube", "success": False,
-        "error": "Not implemented yet - needs a Google Cloud project + "
-                 "YouTube Data API v3 OAuth credentials.",
-    }
+def publish_to_youtube(video_url, title, description):
+    token_json = os.environ.get("YOUTUBE_TOKEN")
+    if not token_json:
+        return {"platform": "youtube", "success": False, "error": "YOUTUBE_TOKEN not set"}
+
+    try:
+        from google.oauth2.credentials import Credentials
+        from googleapiclient.discovery import build
+        from googleapiclient.http import MediaIoBaseUpload
+
+        token_data = json.loads(token_json)
+        credentials = Credentials(
+            token=None,
+            refresh_token=token_data["refresh_token"],
+            client_id=token_data["client_id"],
+            client_secret=token_data["client_secret"],
+            token_uri=token_data["token_uri"],
+        )
+
+        video_resp = requests.get(video_url, timeout=120)
+        video_resp.raise_for_status()
+        media = MediaIoBaseUpload(
+            io.BytesIO(video_resp.content), mimetype="video/mp4", resumable=True,
+        )
+
+        youtube = build("youtube", "v3", credentials=credentials)
+        request = youtube.videos().insert(
+            part="snippet,status",
+            body={
+                "snippet": {
+                    "title": title[:100],
+                    "description": description,
+                    "categoryId": "24",  # Entertainment
+                },
+                "status": {"privacyStatus": "public"},
+            },
+            media_body=media,
+        )
+        response = None
+        while response is None:
+            _, response = request.next_chunk()
+
+        video_id = response["id"]
+        return {
+            "platform": "youtube", "success": True,
+            "video_id": video_id,
+            "permalink": f"https://youtube.com/shorts/{video_id}",
+        }
+    except Exception as e:
+        return {"platform": "youtube", "success": False, "error": str(e)}
 
 
 def main():
@@ -136,13 +181,12 @@ def main():
 
     if args.video_url:
         results.append(publish_to_instagram(args.video_url, args.caption))
+        results.append(publish_to_youtube(args.video_url, args.caption, args.caption))
     else:
         results.append({
             "platform": "instagram", "success": False,
-            "error": "No --video-url provided (Instagram needs a public URL, not a local path)",
+            "error": "No --video-url provided (Instagram/YouTube need a public URL, not a local path)",
         })
-
-    results.append(publish_to_youtube(args.video_path, args.caption, args.caption))
 
     lines = [f"Publish results for {args.date}:"]
     for r in results:

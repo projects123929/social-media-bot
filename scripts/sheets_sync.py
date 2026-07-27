@@ -19,7 +19,7 @@ import os
 import sys
 
 import sheets_gas_client as gas
-from publish import publish_to_instagram
+from publish import publish_to_instagram, publish_to_youtube
 
 STALE_MINUTES = 25
 
@@ -183,20 +183,34 @@ def _publish_row(row):
     # aren't generation activity. Touching it here previously caused a
     # days-old stuck row's repeated publish retries to look like "today",
     # blocking new generation.
+    # Upload Status reflects Instagram (the sheet only has one such column);
+    # YouTube is attempted alongside it but logged separately so a YouTube
+    # failure doesn't block/hide an already-successful Instagram post.
     row_number = row["row_number"]
     try:
-        result = publish_to_instagram(row["Video URL"], row["Video Title"])
+        ig_result = publish_to_instagram(row["Video URL"], row["Video Title"])
     except Exception as e:
         gas.update_row(row_number, {"Upload Status": "Failed"})
-        print(f"Row {row_number}: publish failed - {e}")
+        print(f"Row {row_number}: Instagram publish failed - {e}")
         return
 
-    if result["success"]:
+    if ig_result["success"]:
         gas.update_row(row_number, {"Upload Status": "Uploaded"})
-        print(f"Row {row_number}: posted - {result.get('permalink')}")
+        print(f"Row {row_number}: posted to Instagram - {ig_result.get('permalink')}")
     else:
         gas.update_row(row_number, {"Upload Status": "Failed"})
-        print(f"Row {row_number}: publish failed - {result['error']}")
+        print(f"Row {row_number}: Instagram publish failed - {ig_result['error']}")
+
+    try:
+        yt_result = publish_to_youtube(row["Video URL"], row["Video Title"], row["Video Title"])
+    except Exception as e:
+        print(f"Row {row_number}: YouTube publish failed - {e}")
+        return
+
+    if yt_result["success"]:
+        print(f"Row {row_number}: posted to YouTube - {yt_result.get('permalink')}")
+    else:
+        print(f"Row {row_number}: YouTube publish failed - {yt_result['error']}")
 
 
 def cmd_check_approvals(args):
