@@ -1,4 +1,6 @@
 config/.env
+config/youtube_client_secret.json
+config/youtube_token.json
 storage/
 *.mp4
 __pycache__/
