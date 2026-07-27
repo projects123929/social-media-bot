@@ -18,7 +18,7 @@
 var SHARED_SECRET = "1ERSAZZMyk-NV9x2agGspbXIdu3-LnsjRfpTSoZizAM";
 
 var SHEET_NAME = "Sheet1";
-var COLUMNS = ["Video Title", "Aspect Ratio", "Status", "Progress", "Approval Status", "Upload Status", "Last Updated", "Video URL"];
+var COLUMNS = ["Video Title", "Aspect Ratio", "Status", "Progress", "Approval Status", "Upload Status", "Last Updated", "Video URL", "YouTube Status"];
 
 function doPost(e) {
   var body;

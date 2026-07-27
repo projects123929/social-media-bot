@@ -183,34 +183,42 @@ def _publish_row(row):
     # aren't generation activity. Touching it here previously caused a
     # days-old stuck row's repeated publish retries to look like "today",
     # blocking new generation.
-    # Upload Status reflects Instagram (the sheet only has one such column);
-    # YouTube is attempted alongside it but logged separately so a YouTube
-    # failure doesn't block/hide an already-successful Instagram post.
+    # Upload Status tracks Instagram, YouTube Status tracks YouTube -
+    # independent columns so one platform's success doesn't block retrying
+    # the other, and one platform's failure doesn't get hidden by the
+    # other's success.
     row_number = row["row_number"]
-    try:
-        ig_result = publish_to_instagram(row["Video URL"], row["Video Title"])
-    except Exception as e:
-        gas.update_row(row_number, {"Upload Status": "Failed"})
-        print(f"Row {row_number}: Instagram publish failed - {e}")
-        return
 
-    if ig_result["success"]:
-        gas.update_row(row_number, {"Upload Status": "Uploaded"})
-        print(f"Row {row_number}: posted to Instagram - {ig_result.get('permalink')}")
-    else:
-        gas.update_row(row_number, {"Upload Status": "Failed"})
-        print(f"Row {row_number}: Instagram publish failed - {ig_result['error']}")
+    if row.get("Upload Status") != "Uploaded":
+        try:
+            ig_result = publish_to_instagram(row["Video URL"], row["Video Title"])
+        except Exception as e:
+            gas.update_row(row_number, {"Upload Status": "Failed"})
+            print(f"Row {row_number}: Instagram publish failed - {e}")
+            ig_result = None
 
-    try:
-        yt_result = publish_to_youtube(row["Video URL"], row["Video Title"], row["Video Title"])
-    except Exception as e:
-        print(f"Row {row_number}: YouTube publish failed - {e}")
-        return
+        if ig_result is not None:
+            if ig_result["success"]:
+                gas.update_row(row_number, {"Upload Status": "Uploaded"})
+                print(f"Row {row_number}: posted to Instagram - {ig_result.get('permalink')}")
+            else:
+                gas.update_row(row_number, {"Upload Status": "Failed"})
+                print(f"Row {row_number}: Instagram publish failed - {ig_result['error']}")
 
-    if yt_result["success"]:
-        print(f"Row {row_number}: posted to YouTube - {yt_result.get('permalink')}")
-    else:
-        print(f"Row {row_number}: YouTube publish failed - {yt_result['error']}")
+    if row.get("YouTube Status") != "Uploaded":
+        try:
+            yt_result = publish_to_youtube(row["Video URL"], row["Video Title"], row["Video Title"])
+        except Exception as e:
+            gas.update_row(row_number, {"YouTube Status": "Failed"})
+            print(f"Row {row_number}: YouTube publish failed - {e}")
+            return
+
+        if yt_result["success"]:
+            gas.update_row(row_number, {"YouTube Status": "Uploaded"})
+            print(f"Row {row_number}: posted to YouTube - {yt_result.get('permalink')}")
+        else:
+            gas.update_row(row_number, {"YouTube Status": "Failed"})
+            print(f"Row {row_number}: YouTube publish failed - {yt_result['error']}")
 
 
 def cmd_check_approvals(args):
@@ -221,10 +229,13 @@ def cmd_check_approvals(args):
         if row["Status"] != "Completed":
             continue
 
-        # Already approved but never successfully published (e.g. Video URL
-        # was added after approval, or a previous publish attempt failed) -
-        # retry without needing a fresh Gmail reply.
-        if row["Approval Status"] == "Approved" and row["Upload Status"] != "Uploaded":
+        # Already approved but at least one platform never successfully
+        # published (e.g. Video URL was added after approval, or a previous
+        # publish attempt failed) - retry without needing a fresh Gmail
+        # reply. _publish_row itself skips whichever platform already
+        # succeeded, so this won't double-post.
+        not_fully_posted = row["Upload Status"] != "Uploaded" or row.get("YouTube Status") != "Uploaded"
+        if row["Approval Status"] == "Approved" and not_fully_posted:
             if row.get("Video URL"):
                 _publish_row(row)
             continue
