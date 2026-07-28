@@ -66,6 +66,7 @@ jobs:
           SHEET_ROW: ${{ steps.claim.outputs.row_number }}
           IDEA: ${{ steps.claim.outputs.idea }}
           ASPECT_RATIO: ${{ steps.claim.outputs.aspect_ratio }}
+          VIDEO_LENGTH: ${{ steps.claim.outputs.video_length }}
           GENERATION_MODE: test
           GAS_WEBAPP_URL: ${{ secrets.GAS_WEBAPP_URL }}
           GAS_SHARED_SECRET: ${{ secrets.GAS_SHARED_SECRET }}

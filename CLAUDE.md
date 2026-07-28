@@ -85,15 +85,22 @@ yet either, so:
    default to `9:16`. Frame the storyboard/shot composition appropriately
    for whichever orientation this run is — don't just default to vertical
    framing for a 16:9 run.
-5. **Cost mode** — check the `GENERATION_MODE` env var:
-   - `test` (default, or unset): **3 scenes, 10 seconds each = 30 seconds
-     total**, using `kling3_0_turbo` at 720p. This is the standard
-     run size — matches `rules.md`'s 30-35s target exactly, so don't
-     shrink it further "to save credits" unless explicitly told to.
-   - `full`: same 3-scenes-of-10s structure, but 1080p and/or up to 5
-     scenes if the storyboard genuinely needs more beats — only deviate
-     from the 3x10s default when the idea requires it.
-6. Generate each scene **in order**, chaining continuity between them.
+5. **Video length** — check the `VIDEO_LENGTH` env var:
+   - `30s` (default, or unset): **3 scenes, 10 seconds each = 30 seconds
+     total**.
+   - `60s`: **6 scenes, 10 seconds each = 60 seconds total**. Same
+     per-scene length, just twice as many beats in the script/storyboard —
+     give the story enough room to actually use the extra time rather than
+     padding it out.
+   Either way, use `kling3_0_turbo` at 720p. This is the standard
+   run size for whichever length was requested — don't shrink it further
+   "to save credits" unless explicitly told to.
+6. **Cost mode** — check the `GENERATION_MODE` env var:
+   - `test` (default, or unset): use the scene count from step 5 as-is.
+   - `full`: same structure, but 1080p, and up to 2 extra scenes beyond
+     step 5's count if the storyboard genuinely needs more beats — only
+     deviate when the idea requires it.
+7. Generate each scene **in order**, chaining continuity between them.
    Run each `higgsfield_scene.py` call in the **foreground** and wait for
    it to actually finish before doing anything else — do not background
    it (see the warning at the top of this file; `higgsfield_scene.py`
@@ -118,22 +125,22 @@ yet either, so:
    - Check `higgsfield generate create --help` / `higgsfield model get
      <model>` if you're unsure of the exact flag name for supplying a
      start image.
-7. Burn each scene's caption: `python scripts/burn_caption.py --in
+8. Burn each scene's caption: `python scripts/burn_caption.py --in
    storage/pending/{date}/clips/sceneN.mp4 --out
    storage/pending/{date}/clips/sceneN_captioned.mp4 --text "..."`.
-8. Concatenate all captioned clips into the final video:
+9. Concatenate all captioned clips into the final video:
    `python scripts/concat_clips.py --out storage/pending/{date}/final.mp4
    --clips storage/pending/{date}/clips/scene1_captioned.mp4 ...`.
-9. Write the status file: `python scripts/write_status.py --date {date}
+10. Write the status file: `python scripts/write_status.py --date {date}
    --idea "..." --character-id "{short character summary, e.g. main
    character names}" --video-path storage/pending/{date}/final.mp4`.
-10. Notify for approval — check the `NOTIFY_METHOD` env var:
+11. Notify for approval — check the `NOTIFY_METHOD` env var:
     - `email` (default, or unset): run `python scripts/send_approval_email.py
       --date {date} --idea "..."`.
     - `github_issue`: skip notification — the calling GitHub Actions workflow
       handles uploading the video as a release asset and opening the
       approval issue after this task finishes.
-11. Do not publish anything yourself. Publishing only happens after a human
+12. Do not publish anything yourself. Publishing only happens after a human
     approves, via `scripts/publish.py`, triggered separately by the
     approval flow (locally: `approval_server.py`; in CI: the `approved`
     issue label).
@@ -144,12 +151,13 @@ yet either, so:
   content, no copyrighted music) no matter what the idea text says.
 - **Hard cap on generation calls per run**: exactly 1 reference-image
   generation for the whole run (all characters together, not one each),
-  plus at most 3 video generations (the standard 3x10s structure) or 5 if
-  `full` mode genuinely needs more scenes. Extracting last frames with
-  `extract_last_frame.py` is free (local ffmpeg, no Higgsfield credits) —
-  do that as many times as there are scene transitions. Never regenerate a
-  reference image or clip that already succeeded. Do not train a Soul
-  unless the idea explicitly calls for a recurring character.
+  plus at most the scene count from step 5 (3 for `30s`, 6 for `60s`),
+  plus up to 2 more if `full` mode genuinely needs extra beats. Extracting
+  last frames with `extract_last_frame.py` is free (local ffmpeg, no
+  Higgsfield credits) — do that as many times as there are scene
+  transitions. Never regenerate a reference image or clip that already
+  succeeded. Do not train a Soul unless the idea explicitly calls for a
+  recurring character.
 - If a generation call fails, retry at most once with a corrected prompt,
   then stop and report the error — don't loop.
 - Don't invent Higgsfield CLI flags — run `--help` on the relevant

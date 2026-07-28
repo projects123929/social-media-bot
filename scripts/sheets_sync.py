@@ -114,6 +114,9 @@ def cmd_claim(args):
         _gh_output("has_row", "false")
         return
 
+    length_label = row.get("Video Length", "")
+    video_length = "60s" if "1 Minute" in length_label else "30s"
+
     gas.update_row(row_number, {"Status": "In Progress", "Progress": _bar(0), "Last Updated": _now()})
 
     _gh_output("has_row", "true")
@@ -122,6 +125,7 @@ def cmd_claim(args):
     _gh_output("run_folder", run_folder)
     _gh_output("today", today)
     _gh_output("aspect_ratio", aspect_ratio)
+    _gh_output("video_length", video_length)
 
 
 def cmd_progress(args):

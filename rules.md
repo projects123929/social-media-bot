@@ -1,4 +1,4 @@
-# AI Video Ad Production Pipeline (9:16, 30-35 Sec) — Generic Template
+# AI Video Ad Production Pipeline (9:16 or 16:9, 30s or 1min) — Generic Template
 
 > Reference approach: build one fixed "story world" (characters + location),
 > break it into a 9-panel storyboard, then animate every 3 panels as one
@@ -10,10 +10,12 @@
 
 ## Fixed Constraints (apply to every video, no exceptions)
 
-- **Duration:** 30-35 seconds total
-- **Aspect ratio:** 9:16
-- **Max scenes:** 5 (this pipeline typically produces 3 video-generation
-  clips of ~10s each, built from 3-panel groups — stay at or under 5)
+- **Duration:** selectable per video via the sheet's "Video Length" column
+  — either **30 seconds** (3 scenes × 10s) or **1 minute** (6 scenes × 10s)
+- **Aspect ratio:** selectable per video via the sheet's "Aspect Ratio"
+  column — 9:16 or 16:9
+- **Max scenes:** 3 for a 30-second video, 6 for a 1-minute video (`full`
+  mode may add up to 2 more if the storyboard genuinely needs them)
 - **Captions:** burned into the video, not reliant on platform auto-captions
 - **Content restrictions:**
   - No political content
