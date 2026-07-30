@@ -138,18 +138,19 @@ def cmd_progress(args):
 
 
 def cmd_complete(args):
-    gas.update_row(args.row, {
-        "Status": "Completed",
-        "Progress": _bar(100),
-        "Approval Status": "Pending",
-        "Upload Status": "Pending",
-        "Last Updated": _now(),
-        "Video URL": args.video_url,
-    })
-    # Gmail/Apps Script enforces a length limit on the subject line - truncate
-    # it there (full text still shown in the email body), and keep "[Row N]"
-    # intact since check_reply() matches replies by searching for that exact
-    # substring in the subject.
+    # Send the email BEFORE marking the row Completed, not after - if the
+    # send fails, the row must NOT be left claiming "Completed" with no
+    # email ever sent (that's a permanently stuck state: claim() won't
+    # re-pick a non-Pending row, and check-approvals only retries rows
+    # whose Approval Status is already "Approved", not "Pending"/never
+    # sent). If this raises, the row stays whatever it was before this
+    # call (still "In Progress"), so stale-row recovery will eventually
+    # requeue it for a fresh attempt instead of stranding it silently.
+    #
+    # Gmail/Apps Script enforces a length limit on the subject line -
+    # truncate it there (full text still shown in the email body), and
+    # keep "[Row N]" intact since check_reply() matches replies by
+    # searching for that exact substring in the subject.
     short_title = args.title if len(args.title) <= 80 else args.title[:77] + "..."
     subject = f"Approval Needed: {short_title} [Row {args.row}]"
     body = f"""
@@ -175,6 +176,15 @@ def cmd_complete(args):
     </div>
     """
     gas.send_html_email(subject, body)
+
+    gas.update_row(args.row, {
+        "Status": "Completed",
+        "Progress": _bar(100),
+        "Approval Status": "Pending",
+        "Upload Status": "Pending",
+        "Last Updated": _now(),
+        "Video URL": args.video_url,
+    })
 
 
 def cmd_fail(args):

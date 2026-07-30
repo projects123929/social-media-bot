@@ -105,11 +105,16 @@ jobs:
         env:
           GAS_WEBAPP_URL: ${{ secrets.GAS_WEBAPP_URL }}
           GAS_SHARED_SECRET: ${{ secrets.GAS_SHARED_SECRET }}
+          # Passed as an env var, not interpolated directly into the shell
+          # command below - the idea text can contain quotes/special
+          # characters that would otherwise break bash's parsing when
+          # GitHub Actions substitutes ${{ }} as raw text into a run: block.
+          ROW_IDEA: ${{ steps.claim.outputs.idea }}
         run: |
           cd scripts
           python sheets_sync.py complete \
             --row "${{ steps.claim.outputs.row_number }}" \
-            --title "${{ steps.claim.outputs.idea }}" \
+            --title "$ROW_IDEA" \
             --video-url "https://github.com/projects123929/media/releases/download/sheet-run-${{ steps.claim.outputs.run_folder }}-${{ github.run_number }}/final.mp4"
 
       - name: Mark row failed if generation errored
