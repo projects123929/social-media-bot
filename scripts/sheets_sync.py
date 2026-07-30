@@ -146,7 +146,12 @@ def cmd_complete(args):
         "Last Updated": _now(),
         "Video URL": args.video_url,
     })
-    subject = f"Approval Needed: {args.title} [Row {args.row}]"
+    # Gmail/Apps Script enforces a length limit on the subject line - truncate
+    # it there (full text still shown in the email body), and keep "[Row N]"
+    # intact since check_reply() matches replies by searching for that exact
+    # substring in the subject.
+    short_title = args.title if len(args.title) <= 80 else args.title[:77] + "..."
+    subject = f"Approval Needed: {short_title} [Row {args.row}]"
     body = f"""
     <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;border:1px solid #e5e0f5;border-radius:12px;overflow:hidden;">
       <div style="background:#351C75;padding:24px 28px;">
