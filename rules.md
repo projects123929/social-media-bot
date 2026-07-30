@@ -48,7 +48,15 @@
    use a video model with native dialogue/lip-sync support directly in the
    generation prompt.
 7. **Post-Production** — Color grade, add a brand/end-card, add music/SFX,
-   and export the final 30-35s vertical video.
+   and export the final vertical video.
+
+> **What's actually implemented today** (vs. the aspirational template
+> above): dialogue comes from the video model's native lip-sync, not a
+> separate TTS step. Background music **is real** — `scripts/mix_music.py`
+> mixes a mood-matched track from `assets/music/{mood}/` under the final
+> video, sidechain-ducked under dialogue automatically (see `CLAUDE.md`
+> step 9a and `assets/music/README.md`). Color grading and a branded end
+> card are not automated yet.
 
 ---
 

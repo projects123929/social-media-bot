@@ -24,7 +24,8 @@ Sheets dashboard row, per `docs/AUTOMATION_ARCHITECTURE.md`):
 - Report progress back to the sheet as you go:
   `python scripts/sheets_sync.py progress --row {SHEET_ROW} --percent 20`
   after the reference image, `40`/`60`/`80` after each of the 3 scenes,
-  `90` during captions/concatenation. This is free (no Higgsfield credits).
+  `90` during captions/concatenation/music mixing. This is free (no
+  Higgsfield credits).
 - Skip step 9 (email/GitHub-issue notification) entirely — the calling
   workflow marks the row Completed and sends the approval email itself via
   `scripts/sheets_sync.py complete` after this task finishes successfully.
@@ -128,9 +129,21 @@ yet either, so:
 8. Burn each scene's caption: `python scripts/burn_caption.py --in
    storage/pending/{date}/clips/sceneN.mp4 --out
    storage/pending/{date}/clips/sceneN_captioned.mp4 --text "..."`.
-9. Concatenate all captioned clips into the final video:
-   `python scripts/concat_clips.py --out storage/pending/{date}/final.mp4
+9. Concatenate all captioned clips into `storage/pending/{date}/clips/concatenated.mp4`:
+   `python scripts/concat_clips.py --out storage/pending/{date}/clips/concatenated.mp4
    --clips storage/pending/{date}/clips/scene1_captioned.mp4 ...`.
+9a. **Background music** — pick one mood word that best matches the emotion
+   arc you wrote in step 3 (e.g. `happy`, `calm`, `epic`, `emotional`,
+   `playful`, `festive`, `suspense` — or another word if none of those
+   fit; `mix_music.py` falls back gracefully if that mood has no tracks
+   yet). Then run: `python scripts/mix_music.py --in
+   storage/pending/{date}/clips/concatenated.mp4 --out
+   storage/pending/{date}/final.mp4 --mood {chosen_mood}`. This is free
+   (local ffmpeg, no Higgsfield credits) and ducks the music under
+   dialogue automatically — don't try to balance volume yourself in the
+   scene prompts. If `assets/music/` has no tracks at all yet, the script
+   just copies the video through unchanged (not an error) — mention this
+   in your summary if it happens so the run isn't silently missing music.
 10. Write the status file: `python scripts/write_status.py --date {date}
    --idea "..." --character-id "{short character summary, e.g. main
    character names}" --video-path storage/pending/{date}/final.mp4`.
