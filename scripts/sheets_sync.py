@@ -100,6 +100,10 @@ def cmd_claim(args):
     row = candidates[0]
     row_number = row["row_number"]
     title = row["Video Title"]
+    description = row.get("Description", "")
+    # Title stays short (used for the email subject, which has a length
+    # limit); the full creative brief Claude actually reads combines both.
+    idea = f"{title}. {description}" if description else title
     aspect_label = row["Aspect Ratio"]
     today = datetime.date.today().isoformat()
     run_folder = f"{today}-row{row_number}"
@@ -126,7 +130,8 @@ def cmd_claim(args):
 
     _gh_output("has_row", "true")
     _gh_output("row_number", row_number)
-    _gh_output("idea", title)
+    _gh_output("idea", idea)
+    _gh_output("title", title)
     _gh_output("run_folder", run_folder)
     _gh_output("today", today)
     _gh_output("aspect_ratio", aspect_ratio)

@@ -20,7 +20,7 @@ var SHARED_SECRET = "1ERSAZZMyk-NV9x2agGspbXIdu3-LnsjRfpTSoZizAM";
 var SHEET_NAME = "Sheet1";
 // Order here MUST exactly match the physical column order in the sheet
 // (A, B, C, ...) - this maps by position, not by searching for header text.
-var COLUMNS = ["Video Title", "Video Length", "Aspect Ratio", "Status", "Progress", "Approval Status", "Upload Status", "YouTube Status", "Last Updated", "Video URL"];
+var COLUMNS = ["Video Title", "Description", "Video Length", "Aspect Ratio", "Status", "Progress", "Approval Status", "Upload Status", "YouTube Status", "Last Updated", "Video URL"];
 
 function doPost(e) {
   var body;
