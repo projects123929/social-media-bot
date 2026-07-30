@@ -34,12 +34,17 @@ def _bar(percent: int) -> str:
 
 
 def _gh_output(key, value):
+    # Use GitHub's multiline-safe heredoc syntax, not a plain "key=value"
+    # line - a value containing a newline (e.g. a sheet cell with an
+    # embedded line break) would otherwise corrupt the GITHUB_OUTPUT file
+    # format entirely.
     path = os.environ.get("GITHUB_OUTPUT")
-    line = f"{key}={value}"
+    value = str(value)
     if path:
+        delimiter = f"ghadelim_{os.urandom(8).hex()}"
         with open(path, "a", encoding="utf-8") as f:
-            f.write(line + "\n")
-    print(line)
+            f.write(f"{key}<<{delimiter}\n{value}\n{delimiter}\n")
+    print(f"{key}={value}")
 
 
 GENERATION_START_UTC = datetime.time(5, 30)  # 11:00 IST
