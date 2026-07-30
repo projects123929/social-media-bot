@@ -56,6 +56,11 @@ yet either, so:
 ## Steps
 
 1. Read `config/theme.json` and `rules.md`.
+   - Per `rules.md`'s "Title-Driven Technique Selection" section: read the
+     Title/`IDEA` and decide whether it explicitly calls for the 9-Panel
+     Storyboard Method or (the default) Scene-Chaining Method described in
+     steps 2 and 7 below — state the choice and the triggering phrase (if
+     any) at the start of your summary.
    - If `theme.json` still contains its placeholder text (the literal word
      `PLACEHOLDER` in `niche`/`content_pillars`) **and** `GENERATION_MODE`
      is `test`: this is fine — proceed anyway using a generic, safe,

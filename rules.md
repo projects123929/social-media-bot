@@ -24,6 +24,45 @@
 
 ---
 
+## Title-Driven Technique Selection (read this before anything else)
+
+This file documents **two different prompting techniques** for turning a
+story into a video. Before writing a single prompt, read the video's
+**Title** (and `IDEA`, if set) and decide which technique it's actually
+asking for — don't default to whichever one was used last time without
+checking.
+
+- **9-Panel Storyboard Method** (Sections 2 → 5 below: Product/Subject
+  Board → Character Board → 9-Panel Storyboard grid image → 3 chunked
+  Video Prompts) — use this when the title explicitly asks for it, e.g.
+  it contains phrases like "9 panel storyboard", "9-frame storyboard",
+  "storyboard grid", "3x3 grid", "panel by panel", or names a specific
+  panel count. Follow Sections 2-5 exactly as written, including cropping
+  the grid into 3 groups of 3 panels for start/end video frames.
+- **Scene-Chaining Method** (the pipeline actually implemented and run
+  today — see `CLAUDE.md` steps 2 and 7): one single reference image,
+  then each scene generated in order, chaining continuity by feeding the
+  previous scene's last extracted frame in as the next scene's start
+  image. Use this whenever the title does **not** explicitly call for a
+  panel/storyboard-grid technique — this is the default, not a fallback
+  of last resort.
+- If the title gives no technique hint at all, use the Scene-Chaining
+  Method — it's what's tested and working end-to-end today. Only reach
+  for the 9-Panel Storyboard Method when the title's wording specifically
+  calls for a storyboard/panel/grid approach.
+- Whichever technique is chosen, state it explicitly at the start of the
+  run's summary, along with the exact title phrase (if any) that
+  triggered the choice, so the decision is auditable rather than silent.
+- **The outfit-lock rule applies identically to both techniques** — see
+  each character's locked `<outfit>` field (Section 3) and copy it
+  verbatim into every prompt the chosen technique generates, whether
+  that's 9 storyboard panels or N chained scene prompts. The technique
+  changes how many images/clips get generated and how continuity is
+  carried between them; it never changes the requirement that every
+  character's outfit is identical, word-for-word, in every single shot.
+
+---
+
 ## 0. How the Pipeline Works (Workflow Overview)
 
 1. **Character & Product Lock** — Generate a "Character Reference Sheet" and
@@ -112,9 +151,10 @@
       <name>{CHARACTER_1_NAME}</name>
       <age>{CHARACTER_1_AGE}</age>
       <appearance>{CHARACTER_1_APPEARANCE}</appearance>
+      <outfit>{CHARACTER_1_OUTFIT — exact garments, colors, patterns, and accessories (e.g. "red plaid flannel shirt, dark blue jeans, white sneakers, brown leather belt, silver wristwatch on left wrist"). This is the character's ONE locked outfit for the entire video — write it precisely enough that it cannot be redrawn differently later.</outfit>
       <personality_expression>{CHARACTER_1_EXPRESSION}</personality_expression>
     </character>
-    <!-- repeat <character> block per additional character -->
+    <!-- repeat <character> block per additional character, each with its own locked <outfit> -->
   </characters>
   <shots_required>
     <shot>Front view, all characters together, neutral expression</shot>
@@ -124,9 +164,10 @@
   <style>
     <setting>{LOCATION_DESCRIPTION}</setting>
     <art_style>{ART_STYLE — e.g. photorealistic cinematic, flat cartoon, 3D animated}</art_style>
-    <resolution>4K, consistent character identity across every panel (same face structure, same clothing)</resolution>
+    <resolution>4K, consistent character identity across every panel (same face structure, same exact outfit as written in each character's &lt;outfit&gt; field — same colors, same garments, same accessories, zero variation)</resolution>
   </style>
-  <negative_prompt>no face distortion, no changing clothes between shots, no extra fingers, no inconsistent age/height, no blur, no morphing</negative_prompt>
+  <consistency_rule>Each character wears **exactly one outfit for the entire video** — the precise outfit locked in their &lt;outfit&gt; field above. Do not restyle, recolor, swap, add, or remove any garment or accessory in any shot on this sheet, and do not let the model infer or invent outfit details beyond what is written — copy the &lt;outfit&gt; text verbatim into every shot's prompt.</consistency_rule>
+  <negative_prompt>no face distortion, no changing clothes between shots, no outfit color drift, no swapped/added/missing accessories, no extra fingers, no inconsistent age/height, no blur, no morphing</negative_prompt>
 </prompt>
 ```
 
@@ -140,6 +181,7 @@
   <global_style>
     <format>Vertical 9:16, each panel labeled with panel number and shot type at top</format>
     <consistency>Same characters, same location, same lighting mood, same subject design across all panels</consistency>
+    <outfit_lock>Every character wears the exact same outfit — same garments, colors, patterns, and accessories as locked on the Character Board (Section 3) — in all 9 panels, no exceptions. Re-state each character's full &lt;outfit&gt; text from the Character Board in this prompt so the model has no room to hallucinate or reinterpret it.</outfit_lock>
     <mood>{OVERALL_MOOD}</mood>
   </global_style>
 
@@ -155,7 +197,7 @@
   <panel number="8" shot="WIDE SHOT - EMOTIONAL CLIMAX">{PAYOFF_BEAT — emotional high point}</panel>
   <panel number="9" shot="FINAL BRAND PANEL">Hero shot of {SUBJECT_NAME} with tagline text below: "{CLOSING_TAGLINE}"</panel>
 
-  <negative_prompt>no distortion of faces between panels, no change of clothing between panels, no change of location layout, no blurry text, no extra limbs, no watermark, no character identity drift</negative_prompt>
+  <negative_prompt>no distortion of faces between panels, no change of clothing, color, or accessories between panels, no partial/invented outfit changes, no change of location layout, no blurry text, no extra limbs, no watermark, no character identity drift</negative_prompt>
 </prompt>
 ```
 
@@ -176,10 +218,10 @@
     <line character="{CHARACTER}" timing="8-10s">{LINE}</line>
   </dialogue>
   <lip_sync>Enable native lip-sync matching dialogue exactly to mouth movement, natural pacing, no mismatch</lip_sync>
-  <continuity>Maintain identical character faces, clothing, and lighting as locked in the reference sheets</continuity>
+  <continuity>Maintain identical character faces, 100% identical outfits (exact same garments, colors, patterns, accessories — copy each character's locked &lt;outfit&gt; text verbatim, no reinterpretation), and lighting as locked in the reference sheets</continuity>
   <transitions>{TRANSITION STYLE BETWEEN SHOTS}</transitions>
   <audio>{BACKGROUND SCORE / AMBIENT SOUND / FOLEY}</audio>
-  <negative_prompt>no morphing of faces, no flickering, no extra limbs, no warped hands, no text glitches, no background object popping, no character identity change between shots</negative_prompt>
+  <negative_prompt>no morphing of faces, no flickering, no extra limbs, no warped hands, no text glitches, no background object popping, no character identity change between shots, no outfit/clothing/color/accessory change between shots</negative_prompt>
 </video_prompt>
 ```
 
@@ -196,10 +238,10 @@
     <line character="{CHARACTER}" timing="18-20s">{LINE}</line>
   </dialogue>
   <lip_sync>Enable native lip-sync matching dialogue exactly to mouth movement, natural pacing, no mismatch</lip_sync>
-  <continuity>Same characters, same clothing, same location as previous video; lighting must match exactly</continuity>
+  <continuity>Same characters, 100% identical outfits as Video Prompt 1 and the locked reference sheets (exact same garments, colors, patterns, accessories — zero variation), same location as previous video; lighting must match exactly</continuity>
   <transitions>{TRANSITION STYLE BETWEEN SHOTS}</transitions>
   <audio>{BACKGROUND SCORE / SFX}</audio>
-  <negative_prompt>no morphing during action, no distortion of subject design, no flickering faces, no lighting mismatch from previous clip, no identity drift</negative_prompt>
+  <negative_prompt>no morphing during action, no distortion of subject design, no flickering faces, no outfit/clothing/color/accessory drift from previous clip, no lighting mismatch from previous clip, no identity drift</negative_prompt>
 </video_prompt>
 ```
 
@@ -219,10 +261,10 @@
     <visual>{SUBJECT_NAME} centered, soft glow, clean background, logo/branding crisp and legible</visual>
   </brand_end_card>
   <lip_sync>Enable native lip-sync for dialogue shots; no lip-sync needed for the end card</lip_sync>
-  <continuity>Same characters, same setting, same lighting continued from previous clip</continuity>
+  <continuity>Same characters, 100% identical outfits as every prior clip (exact same garments, colors, patterns, accessories — zero variation), same setting, same lighting continued from previous clip</continuity>
   <transitions>{TRANSITION STYLE, ENDING IN A DISSOLVE INTO THE END CARD}</transitions>
   <audio>Music swells into a resolving note; optional sonic logo on the end card</audio>
-  <negative_prompt>no distortion during motion, no face morphing, no logo/text glitches on end card, no watermark, no artifacts during dissolve, no color mismatch with previous clips</negative_prompt>
+  <negative_prompt>no distortion during motion, no face morphing, no outfit/clothing/color/accessory change from previous clips, no logo/text glitches on end card, no watermark, no artifacts during dissolve, no color mismatch with previous clips</negative_prompt>
 </video_prompt>
 ```
 
@@ -230,9 +272,11 @@
 
 ## 6. Quick Execution Checklist
 
+- [ ] Read the video Title/IDEA and pick a technique per "Title-Driven Technique Selection" above (9-Panel Storyboard Method only if explicitly requested, Scene-Chaining Method otherwise) — state the choice and why
 - [ ] Fill in Section 1 (Script) with the specific idea/character/tagline for this video
 - [ ] Generate the product/subject board (Section 2) → select the best reference shots
-- [ ] Generate the character board (Section 3) → lock face/clothing, note the seed/reference ID
+- [ ] Generate the character board (Section 3) → lock face/outfit (write each character's exact outfit into their `<outfit>` field, word-for-word — garments, colors, patterns, accessories), note the seed/reference ID
+- [ ] Re-paste each character's locked `<outfit>` text verbatim into every later prompt (storyboard panels, all 3 video prompts) — never paraphrase or let the model re-describe the outfit from memory
 - [ ] Generate the 9-panel storyboard (Section 4) using the same seed/reference for consistency
 - [ ] Crop panels into 3 groups (1-3, 4-6, 7-9) as start/end frames
 - [ ] Run Video Prompt 1, 2, 3 through the video model in image-to-video mode (start frame + end frame + prompt)
