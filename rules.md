@@ -25,6 +25,11 @@
   paraphrasing or trimming. (Note: there is no spoken/lip-synced dialogue
   audio track in this pipeline yet, so "matching the dialogue" means
   matching the script's written line verbatim, not audio timing.)
+- **Output resolution:** every scene clip is upscaled to 4K/30fps
+  (Bytedance Video Upscale, standard, common preset) before
+  concatenation, so the final video published to Instagram/YouTube is
+  sourced from the highest-quality file the pipeline produces rather than
+  the raw ~720p/1080p generation.
 - **Content restrictions:**
   - No political content
   - No religious content
@@ -290,9 +295,10 @@ checking.
 - [ ] Run Video Prompt 1, 2, 3 through the video model in image-to-video mode (start frame + end frame + prompt)
 - [ ] Check continuity after each clip (face, clothing, lighting match)
 - [ ] Generate dialogue audio (TTS + lip-sync tool if native lip-sync isn't available)
-- [ ] Assemble the clips with a 0.5s crossfade at each cut (never a hard
-      cut), add background score and SFX, burn in captions only if the
-      Title/Description (`IDEA`/`DESCRIPTION`) explicitly requested them —
-      and if so, caption text must match the scene's written dialogue
-      100% word-for-word
+- [ ] Burn in captions only if the Title/Description (`IDEA`/`DESCRIPTION`)
+      explicitly requested them — caption text must match the scene's
+      written dialogue 100% word-for-word if so
+- [ ] Upscale each scene clip to 4K/30fps before concatenating
+- [ ] Assemble the (upscaled) clips with a 0.5s crossfade at each cut
+      (never a hard cut), add background score and SFX
 - [ ] Final color grade + brand end card + export at 9:16, 30-35s

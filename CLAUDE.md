@@ -24,8 +24,8 @@ Sheets dashboard row, per `docs/AUTOMATION_ARCHITECTURE.md`):
 - Report progress back to the sheet as you go:
   `python scripts/sheets_sync.py progress --row {SHEET_ROW} --percent 20`
   after the reference image, `40`/`60`/`80` after each of the 3 scenes,
-  `90` during captions/concatenation/music mixing. This is free (no
-  Higgsfield credits).
+  `90` during captions/upscaling/concatenation/music mixing. This is free
+  (no Higgsfield credits).
 - Skip step 9 (email/GitHub-issue notification) entirely — the calling
   workflow marks the row Completed and sends the approval email itself via
   `scripts/sheets_sync.py complete` after this task finishes successfully.
@@ -155,17 +155,30 @@ yet either, so:
      against. Don't imply otherwise in status updates or the approval
      email.
    - If not enabled (the default): skip this step entirely and use the raw
-     `sceneN.mp4` clips as-is in step 9.
-9. Concatenate all clips into `storage/pending/{date}/clips/concatenated.mp4`
-   — the captioned clips if step 8 ran, otherwise the raw scene clips:
+     `sceneN.mp4` clips as-is in step 8b.
+8b. **Upscale every scene clip to 4K** before concatenating, so the video
+    that ends up on Instagram/YouTube is sourced from the highest-quality
+    file the pipeline produces rather than the raw ~720p/1080p generation.
+    For each scene (the captioned version if step 8 ran, otherwise the raw
+    `sceneN.mp4`): `python scripts/upscale_clip.py --in
+    storage/pending/{date}/clips/sceneN[_captioned].mp4 --out
+    storage/pending/{date}/clips/sceneN_upscaled.mp4 --model-version
+    standard --resolution 4k --fps 30 --preset common`. This is a real
+    Higgsfield generation call (~0.4 credits per scene at these settings —
+    cheap, but it counts toward this run's credit usage) — run it in the
+    **foreground** and wait for it like every other Higgsfield call (see
+    the warning at the top of this file), never backgrounded. Doing this
+    after caption burn-in (not before) means any burned-in captions get
+    upscaled along with the frame instead of ending up undersized on a
+    4K canvas.
+9. Concatenate all **upscaled** clips into
+   `storage/pending/{date}/clips/concatenated.mp4`:
    `python scripts/concat_clips.py --out
    storage/pending/{date}/clips/concatenated.mp4 --clips
-   storage/pending/{date}/clips/scene1_captioned.mp4
-   storage/pending/{date}/clips/scene2_captioned.mp4 ...` (or
-   `storage/pending/{date}/clips/scene1.mp4
-   storage/pending/{date}/clips/scene2.mp4 ...` when captions were
-   skipped) — list every scene explicitly, one path per clip, matching the
-   scene count from step 5.
+   storage/pending/{date}/clips/scene1_upscaled.mp4
+   storage/pending/{date}/clips/scene2_upscaled.mp4 ...` — list every
+   scene explicitly, one path per clip, matching the scene count from
+   step 5.
    - `concat_clips.py` joins clips with a **0.5s crossfade** at each cut
      (ffmpeg `xfade`/`acrossfade`, default `--transition fade`), not a
      hard cut — this is what keeps transitions looking edited rather than
@@ -211,12 +224,14 @@ yet either, so:
 - **Hard cap on generation calls per run**: exactly 1 reference-image
   generation for the whole run (all characters together, not one each),
   plus at most the scene count from step 5 (3 for `30s`, 6 for `60s`),
-  plus up to 2 more if `full` mode genuinely needs extra beats. Extracting
-  last frames with `extract_last_frame.py` is free (local ffmpeg, no
-  Higgsfield credits) — do that as many times as there are scene
-  transitions. Never regenerate a reference image or clip that already
-  succeeded. Do not train a Soul unless the idea explicitly calls for a
-  recurring character.
+  plus up to 2 more if `full` mode genuinely needs extra beats, plus
+  exactly one `bytedance_video_upscale` call per final scene clip (step
+  8b) — never upscale a clip twice or upscale the concatenated video as a
+  whole instead of per-scene. Extracting last frames with
+  `extract_last_frame.py` is free (local ffmpeg, no Higgsfield credits) —
+  do that as many times as there are scene transitions. Never regenerate a
+  reference image, scene clip, or upscale that already succeeded. Do not
+  train a Soul unless the idea explicitly calls for a recurring character.
 - If a generation call fails, retry at most once with a corrected prompt,
   then stop and report the error — don't loop.
 - Don't invent Higgsfield CLI flags — run `--help` on the relevant
