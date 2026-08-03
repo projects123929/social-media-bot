@@ -4,10 +4,10 @@ transition at each cut instead of a hard cut.
 Hard-cutting independently-generated AI clips together (even after
 re-encoding) tends to read as a stutter/pause at each seam: the clips
 often have a near-static settle frame at their very start/end, and
-timestamp/keyframe misalignment between separately-encoded segments can
-add a stall of its own. A short crossfade (ffmpeg's `xfade`/`acrossfade`
-filters) blends over both problems instead of cutting straight across
-them.
+timestamp/keyframe misalignment (plus slight lighting/exposure drift)
+between separately-encoded segments can add a stall or visible jump of
+its own. A short crossfade (ffmpeg's `xfade`/`acrossfade` filters) blends
+over all of that instead of cutting straight across it.
 
 Usage:
   python scripts/concat_clips.py --out final.mp4 \
@@ -16,8 +16,9 @@ Usage:
 """
 import argparse
 import json
-import os
 import subprocess
+
+TRANSITION_SECONDS_DEFAULT = 0.5
 
 
 def _probe(path):
@@ -40,16 +41,18 @@ def _probe(path):
     }
 
 
-def concat_clips(clip_paths, out_path, transition="fade", transition_duration=0.5):
+def concat_clips(clip_paths, out_path, transition="fade", transition_duration=TRANSITION_SECONDS_DEFAULT):
     if len(clip_paths) == 1:
+        # Nothing to transition between - just re-encode for consistency.
+        # -pix_fmt yuv420p is required for broad player compatibility
+        # (Windows Media Player/Movies & TV failed to open output without it).
         subprocess.run(
             ["ffmpeg", "-y", "-i", clip_paths[0],
-             "-c:v", "libx264", "-preset", "fast", "-crf", "18",
-             "-c:a", "aac", "-b:a", "192k",
-             "-movflags", "+faststart", out_path],
+             "-c:v", "libx264", "-preset", "fast", "-crf", "18", "-pix_fmt", "yuv420p",
+             "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", out_path],
             check=True, capture_output=True, text=True,
         )
-        print(f"[concat_clips] Single clip, wrote {out_path} unchanged (no transition needed)")
+        print(f"[concat_clips] Wrote {out_path} (single clip, no transition)")
         return out_path
 
     probes = [_probe(p) for p in clip_paths]
@@ -91,11 +94,14 @@ def concat_clips(clip_paths, out_path, transition="fade", transition_duration=0.
 
     filter_complex = ";".join(filter_parts)
 
+    # -pix_fmt yuv420p on the final encode too (belt-and-suspenders on top
+    # of the per-input format=yuv420p above) - some players failed to open
+    # output that didn't have it explicitly set on the encoder itself.
     cmd = [
         "ffmpeg", "-y", *inputs,
         "-filter_complex", filter_complex,
         "-map", f"[{prev_v}]", "-map", f"[{prev_a}]",
-        "-c:v", "libx264", "-preset", "fast", "-crf", "18",
+        "-c:v", "libx264", "-preset", "fast", "-crf", "18", "-pix_fmt", "yuv420p",
         "-c:a", "aac", "-b:a", "192k",
         "-movflags", "+faststart", out_path,
     ]
@@ -114,6 +120,6 @@ if __name__ == "__main__":
     parser.add_argument("--clips", nargs="+", required=True)
     parser.add_argument("--transition", default="fade",
                          help="ffmpeg xfade transition name (fade, dissolve, wipeleft, slideleft, circleopen, ...)")
-    parser.add_argument("--transition-duration", type=float, default=0.5)
+    parser.add_argument("--transition-duration", type=float, default=TRANSITION_SECONDS_DEFAULT)
     args = parser.parse_args()
     concat_clips(args.clips, args.out, args.transition, args.transition_duration)
