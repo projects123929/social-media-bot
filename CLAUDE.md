@@ -165,9 +165,19 @@ yet either, so:
    `storage/pending/{date}/clips/scene1.mp4
    storage/pending/{date}/clips/scene2.mp4 ...` when captions were
    skipped) — list every scene explicitly, one path per clip, matching the
-   scene count from step 5. `concat_clips.py` re-encodes during
-   concatenation (not a stream-copy) specifically to avoid seam
-   glitches/pauses at each cut — don't change that back to stream-copying.
+   scene count from step 5.
+   - `concat_clips.py` joins clips with a **0.5s crossfade** at each cut
+     (ffmpeg `xfade`/`acrossfade`, default `--transition fade`), not a
+     hard cut — this is what keeps transitions looking edited rather than
+     stitched, and also masks the near-static settle frame independent AI
+     generations often have right at their start/end. Don't pass
+     `--transition-duration 0` or otherwise revert to a hard cut.
+   - Optionally pick a different `--transition` (any ffmpeg xfade name —
+     `fade`, `dissolve`, `wipeleft`, `slideleft`, `circleopen`, etc.) to
+     match the story's energy (e.g. a snappier `wipeleft`/`slideleft` for
+     a fast comedic beat-to-beat idea, the default `fade` dissolve for
+     calmer/emotional pacing) — state the choice in your summary if you
+     deviate from the default.
 9a. **Background music** — pick one mood word that best matches the emotion
    arc you wrote in step 3 (e.g. `happy`, `calm`, `epic`, `emotional`,
    `playful`, `festive`, `suspense` — or another word if none of those

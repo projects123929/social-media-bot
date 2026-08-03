@@ -75,7 +75,8 @@ var or invents one itself (see Phase 4).
   - `scripts/higgsfield_scene.py` — generate + download one scene
   - `scripts/extract_last_frame.py` — extract a clip's last frame
   - `scripts/burn_caption.py` — burn a caption via ffmpeg drawtext
-  - `scripts/concat_clips.py` — stitch clips into the final video
+  - `scripts/concat_clips.py` — stitch clips into the final video with a
+    0.5s crossfade at each cut (xfade/acrossfade), not a hard cut
   - `scripts/write_status.py` — write `storage/pending/{date}/status.json`
     in the schema the approval scripts expect
 - Hard credit-usage guardrails are written into `CLAUDE.md`: exactly 1

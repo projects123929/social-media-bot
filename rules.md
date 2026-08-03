@@ -290,8 +290,9 @@ checking.
 - [ ] Run Video Prompt 1, 2, 3 through the video model in image-to-video mode (start frame + end frame + prompt)
 - [ ] Check continuity after each clip (face, clothing, lighting match)
 - [ ] Generate dialogue audio (TTS + lip-sync tool if native lip-sync isn't available)
-- [ ] Assemble the 3 clips, add background score and SFX, burn in captions
-      only if the Title/Description (`IDEA`/`DESCRIPTION`) explicitly
-      requested them — and if so, caption text must match the scene's
-      written dialogue 100% word-for-word
+- [ ] Assemble the clips with a 0.5s crossfade at each cut (never a hard
+      cut), add background score and SFX, burn in captions only if the
+      Title/Description (`IDEA`/`DESCRIPTION`) explicitly requested them —
+      and if so, caption text must match the scene's written dialogue
+      100% word-for-word
 - [ ] Final color grade + brand end card + export at 9:16, 30-35s
