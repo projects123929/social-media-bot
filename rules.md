@@ -16,7 +16,7 @@
   column — 9:16 or 16:9
 - **Max scenes:** 3 for a 30-second video, 6 for a 1-minute video (`full`
   mode may add up to 2 more if the storyboard genuinely needs them)
-- **Captions:** burned into the video, not reliant on platform auto-captions
+- **Captions:** none — no on-screen captions/text overlays are burned in
 - **Content restrictions:**
   - No political content
   - No religious content

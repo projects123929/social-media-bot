@@ -82,10 +82,10 @@ yet either, so:
      Curiosity → Tension → Resolution) for the whole video.
    - A per-scene beat: what happens, what changes emotionally, and (if
      there's dialogue) the line(s) spoken and by whom.
-   - Then turn each beat into a scene visual prompt and a short on-screen
-     caption line. Respect `rules.md`'s fixed constraints (duration,
-     aspect ratio, max scenes, content restrictions) and `theme.json`'s
-     tone/content pillars throughout.
+   - Then turn each beat into a scene visual prompt. Respect `rules.md`'s
+     fixed constraints (duration, aspect ratio, max scenes, content
+     restrictions) and `theme.json`'s tone/content pillars throughout. No
+     on-screen captions/text overlays are burned into the video.
 4. **Aspect ratio** — check the `ASPECT_RATIO` env var: use its value
    (`9:16` or `16:9`) for every scene's `--aspect-ratio` flag. If unset,
    default to `9:16`. Frame the storyboard/shot composition appropriately
@@ -131,13 +131,11 @@ yet either, so:
    - Check `higgsfield generate create --help` / `higgsfield model get
      <model>` if you're unsure of the exact flag name for supplying a
      start image.
-8. Burn each scene's caption: `python scripts/burn_caption.py --in
-   storage/pending/{date}/clips/sceneN.mp4 --out
-   storage/pending/{date}/clips/sceneN_captioned.mp4 --text "..."`.
-9. Concatenate all captioned clips into `storage/pending/{date}/clips/concatenated.mp4`:
-   `python scripts/concat_clips.py --out storage/pending/{date}/clips/concatenated.mp4
-   --clips storage/pending/{date}/clips/scene1_captioned.mp4 ...`.
-9a. **Background music** — pick one mood word that best matches the emotion
+8. Concatenate all scene clips into `storage/pending/{date}/clips/concatenated.mp4`
+   (no captions burned in): `python scripts/concat_clips.py --out
+   storage/pending/{date}/clips/concatenated.mp4 --clips
+   storage/pending/{date}/clips/scene1.mp4 storage/pending/{date}/clips/scene2.mp4 ...`.
+8a. **Background music** — pick one mood word that best matches the emotion
    arc you wrote in step 3 (e.g. `happy`, `calm`, `epic`, `emotional`,
    `playful`, `festive`, `suspense` — or another word if none of those
    fit; `mix_music.py` falls back gracefully if that mood has no tracks
