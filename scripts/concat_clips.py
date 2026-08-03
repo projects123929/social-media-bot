@@ -29,7 +29,7 @@ def concat_clips(clip_paths, out_path, transition=TRANSITION_SECONDS_DEFAULT):
         # Nothing to transition between - just re-encode for consistency.
         subprocess.run(
             ["ffmpeg", "-y", "-i", clip_paths[0],
-             "-c:v", "libx264", "-preset", "fast", "-crf", "18",
+             "-c:v", "libx264", "-preset", "fast", "-crf", "18", "-pix_fmt", "yuv420p",
              "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", out_path],
             check=True, capture_output=True, text=True,
         )
@@ -66,7 +66,7 @@ def concat_clips(clip_paths, out_path, transition=TRANSITION_SECONDS_DEFAULT):
         "ffmpeg", "-y", *inputs,
         "-filter_complex", filter_complex,
         "-map", f"[{v_label}]", "-map", f"[{a_label}]",
-        "-c:v", "libx264", "-preset", "fast", "-crf", "18",
+        "-c:v", "libx264", "-preset", "fast", "-crf", "18", "-pix_fmt", "yuv420p",
         "-c:a", "aac", "-b:a", "192k",
         "-movflags", "+faststart", out_path,
     ]
