@@ -54,6 +54,26 @@ Go to `https://github.com/projects123929/social-media-bot/settings/secrets/actio
 
 Editing the script alone isn't enough — after any change, go to **Deploy → Manage deployments → (pencil/edit icon) → New version → Deploy** so the live Web App URL picks up the change. The URL itself stays the same across versions.
 
+## Adding the "Failure Reason" column
+
+`Code.gs`'s `COLUMNS` array now includes a 12th column, `"Failure Reason"`
+(after `Video URL`). Two manual steps to activate it, since neither the
+sheet nor the Apps Script deployment can be edited from this repo:
+
+1. In the dashboard sheet, add the header `Failure Reason` in the first
+   empty column (column L, right after `Video URL`) of row 1. The mapping
+   is positional (see the comment above `COLUMNS`), so it must be the
+   12th column, not just anywhere.
+2. Re-paste this repo's updated `apps_script/Code.gs` into the Apps
+   Script editor (Extensions → Apps Script) and redeploy per "If you ever
+   update `Code.gs`" above.
+
+Once both are done: any row whose generation fails gets a specific,
+plain-English reason written into that column (e.g. "Scene 2 generation
+failed: Higgsfield returned 'insufficient credits'"), and a failure-report
+email is sent to `ai@ms2.co.in` with the same reason and the row's Video
+Title.
+
 ## Note on the old scheduled-task version
 
 The original Claude-scheduled-task automation (`sheets-pipeline-sync`) is

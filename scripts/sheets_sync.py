@@ -9,7 +9,9 @@ Subcommands:
                     fields as GITHUB_OUTPUT lines.
   progress         Update a row's Progress bar text.
   complete         Mark a row Completed and send the approval email.
-  fail             Mark a row failed (Rejected/Failed) after an error.
+  fail             Mark a row failed (Rejected/Failed) after an error, write
+                    --reason to the sheet's Failure Reason column, and email
+                    ai@ms2.co.in a failure report for that row.
   check-approvals  Scan Completed+Pending rows for a Gmail Approve/Reject
                     reply and sync it back to the sheet.
 """
@@ -119,6 +121,10 @@ def cmd_claim(args):
             "Approval Status": "Rejected",
             "Upload Status": "Failed",
             "Last Updated": _now(),
+            "Failure Reason": f'Aspect Ratio column says "{aspect_label}", but this '
+                               f"pipeline only supports 9:16 or 16:9 right now - pick "
+                               f"one of those for this row and it'll be picked up on "
+                               f"the next run.",
         })
         _gh_output("has_row", "false")
         return
@@ -193,13 +199,50 @@ def cmd_complete(args):
 
 
 def cmd_fail(args):
+    reason = args.reason.strip() if args.reason else "Unknown error - check the GitHub Actions run log for this row."
+    # Sheet cells and email subjects both have practical length limits;
+    # keep the reason readable rather than dumping a full stack trace.
+    if len(reason) > 300:
+        reason = reason[:297] + "..."
+
     gas.update_row(args.row, {
         "Status": "Completed",
-        "Progress": "⚠ failed - see logs",
+        "Progress": "⚠ failed - see Failure Reason column",
         "Approval Status": "Rejected",
         "Upload Status": "Failed",
         "Last Updated": _now(),
+        "Failure Reason": reason,
     })
+
+    title = args.title or f"Row {args.row}"
+    subject = f"Automation Failed: {title} [Row {args.row}]"
+    body = f"""
+    <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;border:1px solid #f5d0d0;border-radius:12px;overflow:hidden;">
+      <div style="background:#B00020;padding:24px 28px;">
+        <h1 style="color:#ffffff;font-size:20px;margin:0;">Video Generation Failed</h1>
+      </div>
+      <div style="padding:28px;background:#ffffff;">
+        <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
+          <tr><td style="padding:8px 0;color:#5A5A6E;font-size:13px;width:140px;">Video Title</td>
+              <td style="padding:8px 0;color:#1A1A2E;font-size:14px;font-weight:600;">{title}</td></tr>
+          <tr><td style="padding:8px 0;color:#5A5A6E;font-size:13px;">Row</td>
+              <td style="padding:8px 0;color:#1A1A2E;font-size:14px;">{args.row}</td></tr>
+        </table>
+        <div style="background:#FDECEC;border-radius:8px;padding:16px 20px;">
+          <p style="margin:0 0 8px 0;color:#1A1A2E;font-size:14px;font-weight:600;">What went wrong:</p>
+          <p style="margin:0;color:#1A1A2E;font-size:14px;">{reason}</p>
+        </div>
+        <p style="color:#5A5A6E;font-size:12px;margin-top:20px;">This row's Failure Reason column has the same message. No retry happens automatically for this row - re-check it manually if it should run again. Automated message from the Cartoon Short Pipeline (GitHub Actions).</p>
+      </div>
+    </div>
+    """
+    try:
+        gas.send_html_email(subject, body)
+    except Exception as e:
+        # Don't let a failed failure-notification email crash the workflow
+        # step - the sheet's Failure Reason column already has the info,
+        # this email is a convenience on top of that, not the only record.
+        print(f"[sheets_sync] Failed to send failure-report email: {e}")
 
 
 def _publish_row(row):
@@ -303,6 +346,10 @@ def main():
 
     p = sub.add_parser("fail")
     p.add_argument("--row", type=int, required=True)
+    p.add_argument("--title", default=None)
+    p.add_argument("--reason", default=None,
+                    help="Human-readable reason for the failure, written to the "
+                         "sheet's Failure Reason column and the failure-report email")
     p.set_defaults(func=cmd_fail)
 
     sub.add_parser("check-approvals").set_defaults(func=cmd_check_approvals)

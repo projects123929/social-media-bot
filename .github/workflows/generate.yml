@@ -124,7 +124,20 @@ jobs:
         env:
           GAS_WEBAPP_URL: ${{ secrets.GAS_WEBAPP_URL }}
           GAS_SHARED_SECRET: ${{ secrets.GAS_SHARED_SECRET }}
-        run: cd scripts && python sheets_sync.py fail --row "${{ steps.claim.outputs.row_number }}"
+          ROW_TITLE: ${{ steps.claim.outputs.title }}
+          RUN_FOLDER: ${{ steps.claim.outputs.run_folder }}
+        run: |
+          cd scripts
+          REASON_FILE="../storage/pending/${RUN_FOLDER}/failure_reason.txt"
+          if [ -f "$REASON_FILE" ]; then
+            REASON="$(cat "$REASON_FILE")"
+          else
+            REASON="Generation step failed before it could report a specific reason - check this run's GitHub Actions log for details."
+          fi
+          python sheets_sync.py fail \
+            --row "${{ steps.claim.outputs.row_number }}" \
+            --title "$ROW_TITLE" \
+            --reason "$REASON"
 
       - name: Check Gmail for Approve/Reject replies, publish newly-approved rows
         if: always()

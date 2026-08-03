@@ -238,3 +238,16 @@ yet either, so:
   subcommand if you're unsure of exact parameter names before using them.
 - If any step fails, stop and report the error clearly rather than
   retrying indefinitely (Higgsfield credits are not unlimited).
+- **Sheets-driven mode failure reporting**: if `RUN_FOLDER` and
+  `SHEET_ROW` are set (see "Sheets-driven mode" above) and any step fails
+  after its one allowed retry, before stopping write a single-line,
+  plain-English reason to `storage/pending/{RUN_FOLDER}/failure_reason.txt`
+  — e.g. `Scene 2 generation failed: Higgsfield returned "insufficient
+  credits"` or `Caption burn failed: ffmpeg couldn't find the font file`.
+  This is what a non-technical reader (the client) sees in the sheet's
+  Failure Reason column and in the failure-report email — write it for
+  that audience, not as a stack trace or raw CLI output dump. If you
+  genuinely can't tell what failed (e.g. the very first tool call errored
+  before any real progress), still write your best specific guess rather
+  than skipping the file entirely — the calling workflow falls back to a
+  generic message only if this file is missing outright.
