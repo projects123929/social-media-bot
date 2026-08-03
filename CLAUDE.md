@@ -81,11 +81,13 @@ yet either, so:
    - **Title**, one-line **concept**, and an **emotion arc** (e.g.
      Curiosity → Tension → Resolution) for the whole video.
    - A per-scene beat: what happens, what changes emotionally, and (if
-     there's dialogue) the line(s) spoken and by whom.
+     there's dialogue) the line(s) spoken and by whom. Write this dialogue
+     line exactly as it should ever be shown as a caption — it is the
+     single source of truth for that scene's caption text (see step 8),
+     used only if captions end up enabled there.
    - Then turn each beat into a scene visual prompt. Respect `rules.md`'s
      fixed constraints (duration, aspect ratio, max scenes, content
-     restrictions) and `theme.json`'s tone/content pillars throughout. No
-     on-screen captions/text overlays are burned into the video.
+     restrictions) and `theme.json`'s tone/content pillars throughout.
 4. **Aspect ratio** — check the `ASPECT_RATIO` env var: use its value
    (`9:16` or `16:9`) for every scene's `--aspect-ratio` flag. If unset,
    default to `9:16`. Frame the storyboard/shot composition appropriately
@@ -131,11 +133,42 @@ yet either, so:
    - Check `higgsfield generate create --help` / `higgsfield model get
      <model>` if you're unsure of the exact flag name for supplying a
      start image.
-8. Concatenate all scene clips into `storage/pending/{date}/clips/concatenated.mp4`
-   (no captions burned in): `python scripts/concat_clips.py --out
+8. **Captions are off by default.** Check both the Title/`IDEA` text AND
+   the `DESCRIPTION` env var (set from the sheet's Description column,
+   when present) for this run: only if either one explicitly asks for
+   captions/subtitles (e.g. contains the word "caption" or "subtitle") do
+   you burn them in. State which case applied, and which field (Title or
+   Description) triggered it, at the start of your summary.
+   - If enabled: run `python scripts/burn_caption.py --in
+     storage/pending/{date}/clips/sceneN.mp4 --out
+     storage/pending/{date}/clips/sceneN_captioned.mp4 --text "..."` for
+     each scene, where `--text` is that scene's dialogue line from step 3
+     **verbatim, word-for-word** — copy it exactly, do not shorten,
+     paraphrase, retype from memory, or otherwise let it drift from what
+     you wrote in the script. The burned caption must always read exactly
+     as the dialogue was written for that scene, with no mismatch.
+   - Known limitation to flag in your summary when captions are on: this
+     pipeline has no spoken/lip-synced dialogue audio track yet (see
+     `context.md`), so "matching the dialogue" here means the on-screen
+     caption text matches the script's written dialogue line verbatim —
+     not audio-waveform timing, since there is no dialogue audio to time
+     against. Don't imply otherwise in status updates or the approval
+     email.
+   - If not enabled (the default): skip this step entirely and use the raw
+     `sceneN.mp4` clips as-is in step 9.
+9. Concatenate all clips into `storage/pending/{date}/clips/concatenated.mp4`
+   — the captioned clips if step 8 ran, otherwise the raw scene clips:
+   `python scripts/concat_clips.py --out
    storage/pending/{date}/clips/concatenated.mp4 --clips
-   storage/pending/{date}/clips/scene1.mp4 storage/pending/{date}/clips/scene2.mp4 ...`.
-8a. **Background music** — pick one mood word that best matches the emotion
+   storage/pending/{date}/clips/scene1_captioned.mp4
+   storage/pending/{date}/clips/scene2_captioned.mp4 ...` (or
+   `storage/pending/{date}/clips/scene1.mp4
+   storage/pending/{date}/clips/scene2.mp4 ...` when captions were
+   skipped) — list every scene explicitly, one path per clip, matching the
+   scene count from step 5. `concat_clips.py` re-encodes during
+   concatenation (not a stream-copy) specifically to avoid seam
+   glitches/pauses at each cut — don't change that back to stream-copying.
+9a. **Background music** — pick one mood word that best matches the emotion
    arc you wrote in step 3 (e.g. `happy`, `calm`, `epic`, `emotional`,
    `playful`, `festive`, `suspense` — or another word if none of those
    fit; `mix_music.py` falls back gracefully if that mood has no tracks

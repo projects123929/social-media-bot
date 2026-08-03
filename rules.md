@@ -16,7 +16,15 @@
   column — 9:16 or 16:9
 - **Max scenes:** 3 for a 30-second video, 6 for a 1-minute video (`full`
   mode may add up to 2 more if the storyboard genuinely needs them)
-- **Captions:** none — no on-screen captions/text overlays are burned in
+- **Captions:** off by default — do not burn captions/subtitles into the
+  video unless the sheet's Video Title or Description (or `IDEA`/
+  `DESCRIPTION`) explicitly asks for them (e.g. mentions "captions" or
+  "subtitles"). When triggered, captions must be burned into the video
+  (not reliant on platform auto-captions) and must match the scene's
+  written dialogue **100% word-for-word** — the exact script line, no
+  paraphrasing or trimming. (Note: there is no spoken/lip-synced dialogue
+  audio track in this pipeline yet, so "matching the dialogue" means
+  matching the script's written line verbatim, not audio timing.)
 - **Content restrictions:**
   - No political content
   - No religious content
@@ -283,4 +291,7 @@ checking.
 - [ ] Check continuity after each clip (face, clothing, lighting match)
 - [ ] Generate dialogue audio (TTS + lip-sync tool if native lip-sync isn't available)
 - [ ] Assemble the 3 clips, add background score and SFX, burn in captions
+      only if the Title/Description (`IDEA`/`DESCRIPTION`) explicitly
+      requested them — and if so, caption text must match the scene's
+      written dialogue 100% word-for-word
 - [ ] Final color grade + brand end card + export at 9:16, 30-35s

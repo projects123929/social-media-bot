@@ -187,9 +187,10 @@ var or invents one itself (see Phase 4).
   choice (get the simpler pipeline working end-to-end first); revisit if
   quality still isn't good enough after the continuity/script-structure
   improvements just made.
-- No lip-synced dialogue — scenes have burned-in captions only, not
-  spoken/lip-synced dialogue audio, despite `rules.md`'s template
-  describing that.
+- No lip-synced dialogue — spoken/lip-synced dialogue audio isn't
+  implemented, despite `rules.md`'s template describing that. Burned-in
+  captions are now off by default too (only added when the sheet's Video
+  Title/`IDEA` explicitly asks for captions/subtitles).
 - GitHub Issue email notifications not confirmed working (separate from
   the pipeline itself — a GitHub notification-settings question).
 - Instagram: blocked on Facebook Page / Meta Developer App setup (company
