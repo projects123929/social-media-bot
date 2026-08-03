@@ -15,9 +15,18 @@ def concat_clips(clip_paths, out_path):
     with open(concat_list_path, "w", encoding="utf-8") as f:
         for p in clip_paths:
             f.write(f"file '{os.path.abspath(p)}'\n")
+    # Re-encode (not "-c copy" stream-copy) - each clip comes from a
+    # separate, independently-encoded Higgsfield generation, and
+    # stream-copying them together is prone to seam artifacts (a brief
+    # freeze/pause or audio glitch right at each cut) from inconsistent
+    # keyframe alignment/timestamps between clips. Re-encoding forces
+    # ffmpeg to produce clean, continuous timestamps across the whole
+    # video instead.
     subprocess.run(
-        ["ffmpeg", "-y", "-f", "concat", "-safe", "0",
-         "-i", concat_list_path, "-c", "copy", out_path],
+        ["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", concat_list_path,
+         "-c:v", "libx264", "-preset", "fast", "-crf", "18",
+         "-c:a", "aac", "-b:a", "192k",
+         "-movflags", "+faststart", out_path],
         check=True, capture_output=True, text=True,
     )
     print(f"[concat_clips] Wrote {out_path}")
