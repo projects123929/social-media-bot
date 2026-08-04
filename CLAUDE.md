@@ -76,6 +76,20 @@ yet either, so:
    location (like a mini character board, not a multi-angle board). This
    is the only reference image generation call for the whole run; never
    generate a separate image per character, and never regenerate it.
+2b. **360-degree scene blueprint (anti-hallucination anchor)** — before
+    writing a single visual prompt, write a full written description of
+    the story's location covering **every direction**, not just what the
+    reference image happens to show: what's in front of, behind, to the
+    left of, and to the right of the characters; the floor/ground and
+    ceiling/sky; where the light source is and which way shadows fall;
+    where any major props/furniture/landmarks sit relative to each other.
+    Treat this as a locked spatial "world bible" for the run, the same way
+    each character's `<outfit>` is locked (rules.md) — copy the relevant
+    parts of it verbatim into every scene prompt in step 3/7 instead of
+    re-describing the location from memory each time. This is what stops
+    the video model from hallucinating a different room layout, a new
+    wall, or a light source that jumps sides between scenes/shots — it
+    only has room to invent details you never actually pin down here.
 3. Write a short script before writing visual prompts — this matters for
    quality, don't skip straight to prompts:
    - **Title**, one-line **concept**, and an **emotion arc** (e.g.
@@ -88,6 +102,26 @@ yet either, so:
    - Then turn each beat into a scene visual prompt. Respect `rules.md`'s
      fixed constraints (duration, aspect ratio, max scenes, content
      restrictions) and `theme.json`'s tone/content pillars throughout.
+     Every scene visual prompt must also:
+     - Reference the locked 360-degree blueprint from step 2b verbatim
+       for whatever part of the space is in frame — never re-describe the
+       location freehand.
+     - Explicitly call for **physically accurate motion**: real gravity,
+       weight, and momentum; objects and characters that collide, land,
+       and settle the way they actually would; consistent light direction
+       and shadows matching the step 2b blueprint; no floating props, no
+       impossible camera moves, no physics-defying motion. State this
+       requirement in the prompt itself — don't assume the model defaults
+       to realistic physics without being told.
+     - Break the scene's 10 seconds into **2-3 short shots/camera angles**
+       within that single prompt (e.g. `0-4s: wide establishing shot ...`,
+       `4-7s: medium shot, camera pushes in as ...`, `7-10s: close-up
+       reaction shot ...`), each transition described as a smooth,
+       motivated camera move (push in, pan, whip to a reaction) rather
+       than a jump cut — this is what makes a single 10s clip read as
+       edited coverage of a scene instead of one static continuous shot.
+       All shots within a scene must stay inside the same step 2b
+       blueprint and the same locked character outfits/appearance.
 4. **Aspect ratio** — check the `ASPECT_RATIO` env var: use its value
    (`9:16` or `16:9`) for every scene's `--aspect-ratio` flag. If unset,
    default to `9:16`. Frame the storyboard/shot composition appropriately

@@ -30,6 +30,24 @@
   concatenation, so the final video published to Instagram/YouTube is
   sourced from the highest-quality file the pipeline produces rather than
   the raw ~720p/1080p generation.
+- **Scene grounding:** every video locks a full 360-degree written
+  description of its location (see `CLAUDE.md` step 2b) before any visual
+  prompt is written, and every scene prompt references that description
+  verbatim instead of re-describing the location freehand — this is the
+  anti-hallucination anchor that keeps the room/street/set layout,
+  lighting direction, and prop placement consistent across every shot and
+  scene instead of drifting or inventing new details each generation.
+- **Physics accuracy:** every scene prompt must explicitly call for
+  physically accurate motion — real gravity, weight, and momentum;
+  objects/characters that collide, land, and settle believably; light and
+  shadow direction consistent with the locked scene blueprint; no
+  floating props, no impossible camera moves, no physics-defying motion.
+  Never assume the model defaults to this — state it in the prompt.
+- **Multi-shot scenes:** each 10-second scene clip is written as 2-3
+  short shots/camera angles within a single generation prompt (e.g. wide
+  establishing → medium push-in → close-up reaction), each transition a
+  smooth, motivated camera move rather than a jump cut, so a single clip
+  reads as edited coverage rather than one static continuous shot.
 - **Content restrictions:**
   - No political content
   - No religious content
@@ -287,9 +305,11 @@ checking.
 
 - [ ] Read the video Title/IDEA and pick a technique per "Title-Driven Technique Selection" above (9-Panel Storyboard Method only if explicitly requested, Scene-Chaining Method otherwise) — state the choice and why
 - [ ] Fill in Section 1 (Script) with the specific idea/character/tagline for this video
+- [ ] Write the 360-degree scene blueprint (every direction, floor/ceiling, light source, prop placement) before any visual prompt — lock it as this run's spatial anchor
 - [ ] Generate the product/subject board (Section 2) → select the best reference shots
 - [ ] Generate the character board (Section 3) → lock face/outfit (write each character's exact outfit into their `<outfit>` field, word-for-word — garments, colors, patterns, accessories), note the seed/reference ID
-- [ ] Re-paste each character's locked `<outfit>` text verbatim into every later prompt (storyboard panels, all 3 video prompts) — never paraphrase or let the model re-describe the outfit from memory
+- [ ] Re-paste each character's locked `<outfit>` text and the scene blueprint verbatim into every later prompt (storyboard panels, all video prompts) — never paraphrase or let the model re-describe either from memory
+- [ ] Every scene prompt states physically accurate motion explicitly (gravity, weight, momentum, consistent light/shadow direction) and breaks the scene into 2-3 shots/camera angles with smooth motivated transitions
 - [ ] Generate the 9-panel storyboard (Section 4) using the same seed/reference for consistency
 - [ ] Crop panels into 3 groups (1-3, 4-6, 7-9) as start/end frames
 - [ ] Run Video Prompt 1, 2, 3 through the video model in image-to-video mode (start frame + end frame + prompt)
