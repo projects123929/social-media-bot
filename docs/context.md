@@ -121,6 +121,18 @@ var or invents one itself (see Phase 4).
 - `.github/workflows/publish.yml` — triggers on the `approved` issue label,
   downloads the video from the release, calls `publish.py`. Ready to wire
   up real Instagram/YouTube logic once those accounts exist.
+- **2026-08-10 — switched to new Instagram/YouTube accounts**: both
+  platforms' publishing destination was moved from the original
+  test accounts to a new Instagram Business account (linked via a new
+  Facebook Page + Meta Business Portfolio, "ms2" app) and a new YouTube
+  channel (new Google Cloud OAuth client, `ms2.lonelytoons@gmail.com`).
+  `INSTAGRAM_ACCESS_TOKEN`, `INSTAGRAM_BUSINESS_ACCOUNT_ID`, and
+  `YOUTUBE_TOKEN` GitHub secrets were updated directly (not committed —
+  see `docs/GITHUB_NATIVE_SHEETS_SETUP.md`-style credential handling; the
+  local `config/youtube_client_secret.json`/`config/youtube_token.json`
+  used to generate the new YouTube token are gitignored, never
+  committed). No code changes were needed since `publish.py` already
+  reads these as env vars — this was purely a credential swap.
 
 ### Phase 7 — Cloud deployment: reworked from the brief's VPS plan to GitHub Actions
 - **Why**: same "runs unattended, no human intervention" goal as the
