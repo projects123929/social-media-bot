@@ -43,15 +43,30 @@ yet either, so:
    idea. Otherwise, invent a fresh idea yourself, grounded in
    `theme.json`'s niche, tone, and content pillars — don't reuse a
    previous run's idea.
-2. Design 1-3 characters specifically for this idea (name, visual
-   description, personality/voice). Invent them fresh each run — do not
-   look up or depend on a fixed character library.
-3. `config/characters.json` is reserved only for the rare case of a
+2. **Recurring-character check**: before designing any new character,
+   check whether the Title/`IDEA` (and `DESCRIPTION`, if set) mentions the
+   name of a file under `config/characters/*.md` (case-insensitive
+   filename match, e.g. "Hulku" → `config/characters/hulku.md`). If so,
+   read that file and use its identity/appearance/voice/personality/
+   wardrobe rules as-is for that character — do not redesign or
+   reinterpret them. Still invent the specific story/plot fresh each run
+   (unless the character file itself defines a default story pattern to
+   fall back on when the sheet doesn't specify one), and still invent any
+   other one-off characters the story needs normally.
+3. Design 1-3 characters specifically for this idea (name, visual
+   description, personality/voice) for any characters not covered by step
+   2. Invent them fresh each run — do not look up or depend on a fixed
+   character library.
+4. `config/characters.json` is reserved only for the rare case of a
    character that's explicitly meant to recur across multiple future
-   videos (e.g. a mascot). Unless the idea specifically calls for that,
+   videos (e.g. a mascot) and doesn't have its own `config/characters/*.md`
+   file yet. Unless the idea specifically calls for a recurring character,
    treat every character as one-off: skip `characters.json` entirely, and
    never train a persistent Soul for a one-off character — that's wasted
-   credits and the whole point of a Soul is reuse across videos.
+   credits and the whole point of a Soul is reuse across videos. A
+   recurring character defined via `config/characters/*.md` (step 2) may
+   still warrant a trained Soul for visual consistency across runs — use
+   judgment based on how many videos are expected to reuse that character.
 
 ## Steps
 
