@@ -42,6 +42,10 @@ a realistic human.
 
 ## Face
 
+- Face skin is the **same green** as the body — no skin-tone/color change
+  between face and body. The face is human-child-*shaped* (proportions,
+  cuteness), not human-*colored*; never render Hulku with realistic human
+  skin on the face while the body stays green.
 - Cute, human-child-inspired facial structure
 - Large but proportionally believable expressive eyes (dark brown,
   natural catchlights — cute but not anime; no glowing eyes, no oversized
