@@ -164,17 +164,24 @@ yet either, so:
    already blocks until Higgsfield's job completes via `--wait`, so there
    is never a reason to background it). Pass `--aspect-ratio $ASPECT_RATIO`
    (or `16:9`/`9:16` explicitly, matching step 4) on every scene call.
-   - Scene 1: `python scripts/higgsfield_scene.py --prompt "..." --out
+   - Scene 1: `python scripts/higgsfield_scene.py --prompt "<scene 1's own
+     distinct prompt from your step 3 script>" --out
      storage/pending/{date}/clips/scene1.mp4 --aspect-ratio <9:16 or 16:9>
      --start-image <the run's reference image from step 2>`.
    - After scene 1 finishes, extract its last frame: `python
      scripts/extract_last_frame.py --in
      storage/pending/{date}/clips/scene1.mp4 --out
      storage/pending/{date}/clips/scene1_last_frame.jpg`.
-   - Scene 2: same `higgsfield_scene.py` call, but `--start-image` is
-     scene 1's extracted last frame, not the original reference image.
-   - Repeat: extract scene 2's last frame, use it as scene 3's
-     `--start-image`, and so on for any further scenes.
+   - Scene 2: same **command structure/flags** as scene 1, but two things
+     change: `--start-image` is scene 1's extracted last frame (not the
+     original reference image), **and** `--prompt` is scene 2's own
+     distinct prompt from your step 3 script — its own beat, moving the
+     story forward, never scene 1's prompt text copied over. Every scene's
+     `--prompt` must be different from every other scene's, the same way
+     every scene's `--start-image` is different.
+   - Repeat for each further scene: extract the previous scene's last
+     frame, use it as `--start-image`, and write that scene's own distinct
+     prompt from step 3 — never reuse an earlier scene's prompt text.
    - This chaining (each clip starting from the previous clip's actual
      last frame) is what keeps character appearance, location, and
      lighting continuous across cuts — don't skip it and don't have every
@@ -182,6 +189,19 @@ yet either, so:
    - Check `higgsfield generate create --help` / `higgsfield model get
      <model>` if you're unsure of the exact flag name for supplying a
      start image.
+   - **Hard gate — do not skip ahead**: before moving on to step 8, count
+     your actual `higgsfield_scene.py` calls against the scene count from
+     step 5 (3 for `30s`, 6 for `60s`, or `full` mode's count). If you
+     have fewer scene clips than required — for any reason, including
+     "the story felt complete already" — you are not done: go back and
+     generate the missing scene(s) now, each with its own distinct beat
+     and prompt from step 3's script, continuing the single story forward
+     (never a repeat or near-duplicate of an earlier scene's prompt or
+     dialogue). Never proceed to concatenation with fewer clips than the
+     required scene count, and never silently treat a shorter video as an
+     acceptable outcome — if a scene genuinely can't be generated after
+     its one retry (see Guardrails), stop and report the error instead of
+     continuing with what you have.
 8. **Captions are off by default.** Check both the Title/`IDEA` text AND
    the `DESCRIPTION` env var (set from the sheet's Description column,
    when present) for this run: only if either one explicitly asks for

@@ -93,7 +93,18 @@ justifies a change.
 If the sheet's Title/Description just says to use Hulku without dictating
 a specific plot, default to this emotional arc — but invent a **fresh**
 specific scenario, insult, and struggle each time; never reuse the exact
-same dialogue/insults/success path from a previous run:
+same dialogue/insults/success path from a previous run.
+
+**This is a 4-beat emotional arc, not a 4-scene structure** — map it onto
+however many scenes the run actually needs (per `CLAUDE.md` step 5: 3
+scenes for a 30s run, 6 for 60s), by combining beats into one scene where
+needed rather than dropping any of them. For a standard 3-scene/30s run:
+combine beats 1+2 into scene 1 (a single scene can show the insult *and*
+Hulku's quiet decision to prove himself), beat 3 alone into scene 2, and
+beat 4 alone into scene 3. For a 6-scene/60s run, each beat can get its
+own scene plus room for 1-2 extra beats of build-up. Whatever the mapping,
+every scene must still get its own distinct prompt/dialogue that advances
+the story — never repeat an earlier scene's beat.
 
 1. **Beginning** — Insult & humiliation. Someone mocks Hulku (about his
    size, strength, or worth). Tone should feel harsh, mocking, and
