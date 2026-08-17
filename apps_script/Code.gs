@@ -4,18 +4,23 @@
  *
  * How to install: see docs/GITHUB_NATIVE_SHEETS_SETUP.md. Short version —
  * paste this whole file into Extensions > Apps Script in the dashboard
- * spreadsheet, set SHARED_SECRET below, then Deploy > New deployment >
- * Web app (Execute as: Me, Who has access: Anyone).
+ * spreadsheet, set the SHARED_SECRET Script Property (Project Settings >
+ * Script Properties > Add script property — NOT hardcoded here, this file
+ * may end up in a public repo), then Deploy > New deployment > Web app
+ * (Execute as: Me, Who has access: Anyone).
  *
  * This script runs as whoever deployed it (should be ai@ms2.co.in) and
  * uses that account's own Sheets + Gmail access automatically — that's
  * why no separate credentials are needed.
  */
 
-// Change this to any random string, then use the SAME value as the
-// GAS_SHARED_SECRET GitHub secret. Prevents randoms from calling your
-// Web App URL if they ever guess/find it.
-var SHARED_SECRET = "1ERSAZZMyk-NV9x2agGspbXIdu3-LnsjRfpTSoZizAM";
+// Read from Script Properties, not hardcoded - this file is version
+// controlled and may be in a public repo, so the actual secret value must
+// never appear in source. Set it once via Project Settings > Script
+// Properties in the Apps Script editor, then use the SAME value as the
+// GAS_SHARED_SECRET GitHub secret. Prevents randoms from calling your Web
+// App URL if they ever guess/find it.
+var SHARED_SECRET = PropertiesService.getScriptProperties().getProperty("SHARED_SECRET");
 
 var SHEET_NAME = "Sheet1";
 // Order here MUST exactly match the physical column order in the sheet

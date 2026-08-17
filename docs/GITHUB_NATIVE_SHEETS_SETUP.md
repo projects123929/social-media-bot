@@ -13,12 +13,15 @@ itself.
 
 1. Delete whatever's in the default `Code.gs` file.
 2. Open [`apps_script/Code.gs`](../apps_script/Code.gs) from this repo, copy its entire contents, paste into the Apps Script editor.
-3. Near the top, find this line:
-   ```
-   var SHARED_SECRET = "REPLACE_WITH_A_RANDOM_STRING";
-   ```
-   Replace `REPLACE_WITH_A_RANDOM_STRING` with any random string of your choosing (e.g. mash the keyboard, or use a password generator) — keep it somewhere, you'll need the exact same value in step 5.
-4. Click the **Save** icon (or Ctrl+S).
+3. Click the **Save** icon (or Ctrl+S).
+4. Set the shared secret as a **Script Property**, not in the code itself
+   (this file is version controlled — possibly in a public repo — so the
+   actual secret value must never be typed into it): click the gear icon
+   (**Project Settings**) in the left sidebar → scroll to **Script
+   Properties** → **Add script property** → Property: `SHARED_SECRET`,
+   Value: any random string of your choosing (e.g. mash the keyboard, or
+   use a password generator) → **Save script properties**. Keep this value
+   somewhere, you'll need the exact same one in step 5.
 
 ## 3. Deploy as a Web App
 
@@ -40,7 +43,7 @@ Go to `https://github.com/projects123929/social-media-bot/settings/secrets/actio
 | Name | Value |
 |---|---|
 | `GAS_WEBAPP_URL` | The Web app URL from step 3.6 |
-| `GAS_SHARED_SECRET` | The exact same random string you put in `Code.gs` in step 2.3 |
+| `GAS_SHARED_SECRET` | The exact same random string you set as the `SHARED_SECRET` Script Property in step 2.4 |
 
 (These are in addition to your existing `HIGGSFIELD_CREDENTIALS` and `CLAUDE_CODE_OAUTH_TOKEN` secrets.)
 
